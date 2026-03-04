@@ -1,0 +1,571 @@
+---
+title: "Organizations API"
+description: "API endpoints for managing Modrinth organizations and their projects"
+---
+
+Organizations are groups of users that can collectively own and manage multiple projects. When a project belongs to an organization, all organization members inherit permissions to manage that project.
+
+## Get Organization
+
+Retrieve a single organization by its ID or slug.
+
+```http
+GET /v3/organization/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  The organization's unique ID
+</ResponseField>
+
+<ResponseField name="slug" type="string">
+  The organization's URL-safe slug
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The organization's name/title
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The organization's description
+</ResponseField>
+
+<ResponseField name="team_id" type="string">
+  The ID of the organization's team
+</ResponseField>
+
+<ResponseField name="icon_url" type="string">
+  URL to the organization's icon
+</ResponseField>
+
+<ResponseField name="color" type="integer">
+  Primary color extracted from the icon (as RGB integer)
+</ResponseField>
+
+<ResponseField name="members" type="array">
+  Array of team members
+  <Expandable title="properties">
+    <ResponseField name="user" type="object">
+      User information including id, username, and avatar_url
+    </ResponseField>
+    <ResponseField name="role" type="string">
+      Member's role/title
+    </ResponseField>
+    <ResponseField name="permissions" type="integer">
+      Project permissions bitfield
+    </ResponseField>
+    <ResponseField name="organization_permissions" type="integer">
+      Organization-specific permissions bitfield
+    </ResponseField>
+    <ResponseField name="accepted" type="boolean">
+      Whether the member has accepted the invitation
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/organization/my-org
+```
+
+### Example Response
+
+```json
+{
+  "id": "aBcDeFgH",
+  "slug": "my-org",
+  "name": "My Organization",
+  "description": "A group of developers creating amazing mods",
+  "team_id": "xYz12345",
+  "icon_url": "https://cdn.modrinth.com/data/aBcDeFgH/icon.png",
+  "color": 5814783,
+  "members": [
+    {
+      "user": {
+        "id": "9dU94F4T",
+        "username": "jellysquid",
+        "avatar_url": "https://cdn.modrinth.com/avatars/9dU94F4T.png"
+      },
+      "role": "Owner",
+      "permissions": 255,
+      "organization_permissions": 255,
+      "accepted": true,
+      "payouts_split": 10000,
+      "ordering": 0
+    }
+  ]
+}
+```
+
+---
+
+## Get Multiple Organizations
+
+Retrieve multiple organizations by their IDs or slugs.
+
+```http
+GET /v3/organizations?ids=["id1","id2"]
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of organization IDs or slugs as a string
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/organizations?ids=["org1","org2"]'
+```
+
+---
+
+## Create Organization
+
+Create a new organization. Requires authentication and `ORGANIZATION_CREATE` scope.
+
+```http
+POST /v3/organization
+```
+
+### Request Body
+
+<ParamField body="slug" type="string" required>
+  URL-safe organization slug (3-64 characters, lowercase letters, numbers, hyphens)
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Organization name/title (3-64 characters)
+</ParamField>
+
+<ParamField body="description" type="string" required>
+  Organization description (3-256 characters)
+</ParamField>
+
+### Response
+
+Returns the newly created organization object with the creator as the owner.
+
+### Example Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/organization \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "slug": "awesome-devs",
+    "name": "Awesome Developers",
+    "description": "Building the future of Minecraft modding"
+  }'
+```
+
+### Limits
+
+Users have a limit on the number of organizations they can create. If the limit is reached, the request will fail with a `LimitReached` error.
+
+---
+
+## Edit Organization
+
+Update an organization's details. Requires authentication and `ORGANIZATION_WRITE` scope with `EDIT_DETAILS` permission.
+
+```http
+PATCH /v3/organization/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string">
+  New organization name (3-64 characters)
+</ParamField>
+
+<ParamField body="slug" type="string">
+  New URL-safe slug (3-64 characters)
+</ParamField>
+
+<ParamField body="description" type="string">
+  New organization description (3-256 characters)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/organization/my-org \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "An updated organization description"
+  }'
+```
+
+### Notes
+
+- Slug changes must not collide with existing organization IDs or slugs
+- Returns 204 No Content on success
+- Requires `EDIT_DETAILS` organization permission
+
+---
+
+## Delete Organization
+
+Delete an organization. Requires authentication and `ORGANIZATION_DELETE` scope with `DELETE_ORGANIZATION` permission.
+
+```http
+DELETE /v3/organization/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Behavior
+
+When an organization is deleted:
+- All projects owned by the organization are transferred to the organization owner
+- The organization owner becomes the "Inherited Owner" of each project
+- Organization members are removed from project teams
+- The organization and its team are permanently deleted
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/organization/my-org \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Organization Projects
+
+List all projects owned by an organization.
+
+```http
+GET /v3/organization/{id}/projects
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Response
+
+Returns an array of project objects owned by the organization. Only includes projects visible to the requesting user.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/organization/my-org/projects
+```
+
+### Example Response
+
+```json
+[
+  {
+    "id": "AANobbMI",
+    "slug": "sodium",
+    "name": "Sodium",
+    "summary": "A modern rendering engine",
+    "organization_id": "aBcDeFgH",
+    "team_id": "3vHspAEn",
+    "status": "approved",
+    "downloads": 50000000
+  }
+]
+```
+
+---
+
+## Add Project to Organization
+
+Add an existing project to an organization. Requires authentication and both `PROJECT_WRITE` and `ORGANIZATION_WRITE` scopes.
+
+```http
+POST /v3/organization/{id}/projects
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Request Body
+
+<ParamField body="project_id" type="string" required>
+  The project ID or slug to add
+</ParamField>
+
+### Requirements
+
+- You must be an owner of the project you're adding
+- You must have `ADD_PROJECT` permission in the organization
+- The project must not already belong to another organization
+
+### Behavior
+
+When a project is added to an organization:
+- The project's `organization_id` is set
+- Former project owners lose their owner status
+- The organization owner is removed from the project team
+- Organization members inherit permissions to the project
+
+### Example Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/organization/my-org/projects \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "sodium"
+  }'
+```
+
+---
+
+## Remove Project from Organization
+
+Remove a project from an organization and transfer it to a new owner. Requires authentication and both `PROJECT_WRITE` and `ORGANIZATION_WRITE` scopes.
+
+```http
+DELETE /v3/organization/{id}/projects/{project_id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+<ParamField path="project_id" type="string" required>
+  The project ID or slug to remove
+</ParamField>
+
+### Request Body
+
+<ParamField body="new_owner" type="string" required>
+  User ID of the new project owner (must be an organization member)
+</ParamField>
+
+### Requirements
+
+- You must have `REMOVE_PROJECT` permission in the organization
+- The specified new owner must be a member of the organization
+- The project must currently be owned by the organization
+
+### Behavior
+
+When a project is removed:
+- The project's `organization_id` is set to null
+- The specified user becomes the project owner
+- If the new owner isn't already a project team member, they're added as "Inherited Owner"
+- Organization permissions are removed from the project
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/organization/my-org/projects/sodium \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "new_owner": "9dU94F4T"
+  }'
+```
+
+---
+
+## Get Project's Organization
+
+Get the organization that owns a specific project.
+
+```http
+GET /v3/project/{id}/organization
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Response
+
+Returns the organization object if the project belongs to an organization, otherwise returns 404.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/project/sodium/organization
+```
+
+---
+
+## Update Organization Icon
+
+Upload a new icon for the organization. Requires authentication and `ORGANIZATION_WRITE` scope with `EDIT_DETAILS` permission.
+
+```http
+PATCH /v3/organization/{id}/icon?ext=png
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ext" type="string" required>
+  Image file extension (png, jpg, jpeg, gif, webp, svg)
+</ParamField>
+
+### Request Body
+
+Binary image data (max 256 KiB)
+
+### Behavior
+
+- Deletes the old icon if one exists
+- Uploads and optimizes the new icon
+- Extracts a primary color from the image
+- Updates the organization's `icon_url`, `raw_icon_url`, and `color` fields
+
+### Example Request
+
+```bash
+curl -X PATCH 'https://api.modrinth.com/v3/organization/my-org/icon?ext=png' \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: image/png" \
+  --data-binary '@icon.png'
+```
+
+---
+
+## Delete Organization Icon
+
+Remove the organization's icon. Requires authentication and `ORGANIZATION_WRITE` scope with `EDIT_DETAILS` permission.
+
+```http
+DELETE /v3/organization/{id}/icon
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/organization/my-org/icon \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Organization Members
+
+Get all members of an organization's team.
+
+```http
+GET /v3/organization/{id}/members
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The organization ID or slug
+</ParamField>
+
+### Response
+
+Returns an array of team member objects.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/organization/my-org/members
+```
+
+### Example Response
+
+```json
+[
+  {
+    "user": {
+      "id": "9dU94F4T",
+      "username": "jellysquid",
+      "avatar_url": "https://cdn.modrinth.com/avatars/9dU94F4T.png"
+    },
+    "role": "Owner",
+    "permissions": 255,
+    "organization_permissions": 255,
+    "accepted": true,
+    "payouts_split": 10000,
+    "ordering": 0
+  }
+]
+```
+
+---
+
+## Organization Permissions
+
+Organization members have specific permissions that control what they can do:
+
+- `EDIT_DETAILS` - Edit organization name, slug, description, and icon
+- `MANAGE_INVITES` - Invite new members to the organization
+- `REMOVE_MEMBER` - Remove members from the organization
+- `EDIT_MEMBER` - Edit member roles and permissions
+- `ADD_PROJECT` - Add projects to the organization
+- `REMOVE_PROJECT` - Remove projects from the organization
+- `DELETE_ORGANIZATION` - Delete the entire organization
+
+These are separate from project permissions and are stored in the `organization_permissions` field of team members.
+
+---
+
+## Common Use Cases
+
+**Creating an Organization**
+1. Call `POST /v3/organization` with name, slug, and description
+2. You become the organization owner automatically
+3. Upload an icon with `PATCH /v3/organization/{id}/icon`
+4. Invite team members using the Teams API
+
+**Adding Projects to an Organization**
+1. You must be the owner of the project
+2. You must have `ADD_PROJECT` permission in the organization
+3. Call `POST /v3/organization/{id}/projects` with the project ID
+4. All organization members now have access to the project
+
+**Managing Organization Teams**
+- Use the standard Teams API endpoints with the organization's `team_id`
+- Set `organization_permissions` when adding members
+- Organization owners have full permissions by default
+
+**Transferring Projects**
+1. To move between organizations: Remove from old org, add to new org
+2. To make independent: Remove from org and specify new owner
+3. Original team members remain on the project team
