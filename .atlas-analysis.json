@@ -1,0 +1,161 @@
+{
+  "projectType": "saas",
+  "projectName": "Modrinth",
+  "projectDescription": "The open-source platform for discovering, installing, and hosting Minecraft mods, modpacks, and plugins",
+  "theme": "palm",
+  "primaryColor": "#04ac5c",
+  "lightColor": "#1fd56c",
+  "darkColor": "#17221f",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Platform Guide",
+            "pages": [
+              "platform/web-interface",
+              "platform/desktop-app",
+              "platform/features"
+            ]
+          },
+          {
+            "group": "For Creators",
+            "pages": [
+              "creators/creating-projects",
+              "creators/managing-versions",
+              "creators/teams-and-permissions",
+              "creators/analytics",
+              "creators/monetization"
+            ]
+          },
+          {
+            "group": "For Players",
+            "pages": [
+              "players/installing-mods",
+              "players/creating-modpacks",
+              "players/using-launcher",
+              "players/profiles-and-instances"
+            ]
+          },
+          {
+            "group": "Server Hosting",
+            "pages": [
+              "hosting/getting-started",
+              "hosting/managing-servers",
+              "hosting/backups",
+              "hosting/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/rate-limits",
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Core Resources",
+            "pages": [
+              "api/projects",
+              "api/versions",
+              "api/users",
+              "api/teams",
+              "api/collections"
+            ]
+          },
+          {
+            "group": "Content & Search",
+            "pages": [
+              "api/search",
+              "api/tags",
+              "api/categories",
+              "api/analytics"
+            ]
+          },
+          {
+            "group": "Server Hosting API",
+            "pages": [
+              "api/servers",
+              "api/websocket",
+              "api/backups"
+            ]
+          },
+          {
+            "group": "Client Libraries",
+            "pages": [
+              "api/javascript-client",
+              "api/rust-client"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/getting-started",
+              "development/code-style"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture-overview",
+              "development/backend-labrinth",
+              "development/frontend-web",
+              "development/desktop-app",
+              "development/packages"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "development/local-setup",
+              "development/testing",
+              "development/deployment"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Mod and modpack discovery and hosting",
+    "Cross-platform desktop launcher with instance management",
+    "RESTful API with OpenAPI documentation",
+    "Team collaboration and permissions",
+    "Analytics and monetization for creators",
+    "Minecraft server hosting with WebSocket management",
+    "Multi-language support and internationalization"
+  ],
+  "publicApiSurface": [
+    "GET /v2/project/{id|slug}",
+    "GET /v2/search",
+    "GET /v2/version/{id}",
+    "GET /v2/user/{id}",
+    "POST /v2/version",
+    "PATCH /v3/project/{id}",
+    "GET /v3/tag/{category}",
+    "WebSocket connection for server management",
+    "@modrinth/api-client (JavaScript/TypeScript)",
+    "Theseus library (Rust)"
+  ]
+}
