@@ -1,0 +1,294 @@
+---
+title: Creating Projects
+description: Learn how to create and publish your first project on Modrinth
+---
+
+This guide walks you through creating a new project on Modrinth, from setting up basic information to uploading your first version.
+
+## Project Creation Overview
+
+When you create a project on Modrinth, you'll need to provide essential metadata, upload project files, and configure settings. Projects can be created as mods, modpacks, resource packs, shaders, plugins, or data packs.
+
+## Prerequisites
+
+- A Modrinth account with `PROJECT_CREATE` permissions
+- At least one version file ready to upload
+- Project icon (recommended, 256KB max, PNG/JPEG format)
+
+<Note>
+You must have at least one initial version when submitting a project for review. Draft projects can be created without versions.
+</Note>
+
+## Required Project Information
+
+<Steps>
+
+### Basic Details
+
+Provide the core information about your project:
+
+<ParamField path="name" type="string" required>
+  The display name of your project (3-64 characters)
+  
+  Must not contain special characters or excessive formatting.
+</ParamField>
+
+<ParamField path="slug" type="string" required>
+  URL-friendly identifier for your project (3-64 characters)
+  
+  - Must be unique across Modrinth
+  - Can only contain lowercase letters, numbers, and hyphens
+  - Used in your project URL: `modrinth.com/mod/{slug}`
+  
+  <Warning>
+  Slugs that are valid base62 IDs will be rejected to prevent conflicts with project IDs.
+  </Warning>
+</ParamField>
+
+<ParamField path="summary" type="string" required>
+  Short description of your project (3-255 characters)
+  
+  This appears in search results and project listings.
+</ParamField>
+
+<ParamField path="description" type="string" required>
+  Full project description in Markdown (up to 65,536 characters)
+  
+  Supports:
+  - Standard Markdown formatting
+  - Images (you can upload images via the API first)
+  - Code blocks
+  - Links
+</ParamField>
+
+### Categories and Tags
+
+Help users discover your project:
+
+<ParamField path="categories" type="array" required>
+  Primary categories for your project (1-3 categories)
+  
+  Categories must match your project type. Available categories can be fetched from:
+  ```bash
+  GET /v3/tag/category
+  ```
+  
+  Example categories:
+  - Mods: `technology`, `adventure`, `decoration`
+  - Modpacks: `combat`, `magic`, `multiplayer`
+</ParamField>
+
+<ParamField path="additional_categories" type="array">
+  Secondary categories (up to 256 additional categories)
+  
+  Used for more specific categorization beyond the primary categories.
+</ParamField>
+
+### License Information
+
+<ParamField path="license_id" type="string" required>
+  SPDX license identifier for your project
+  
+  Common licenses:
+  - `MIT` - MIT License
+  - `GPL-3.0` - GNU General Public License v3.0
+  - `Apache-2.0` - Apache License 2.0
+  - `LGPL-3.0` - GNU Lesser General Public License v3.0
+  - `ARR` - All Rights Reserved (default)
+  
+  Get full list:
+  ```bash
+  GET /v3/license
+  ```
+</ParamField>
+
+<ParamField path="license_url" type="string">
+  Optional URL to your license file or page
+  
+  Useful for custom licenses or additional terms.
+</ParamField>
+
+### Project Icon
+
+Upload an icon to represent your project:
+
+- **Format**: PNG or JPEG
+- **Maximum size**: 256 KiB
+- **Recommended dimensions**: 256x256 pixels or larger
+- **Aspect ratio**: Square (1:1) recommended
+
+The icon will be automatically optimized and resized to 96x96 pixels for display. A dominant color will be extracted for theming.
+
+<Note>
+Icons are uploaded as part of the multipart form data with the field name `icon`.
+</Note>
+
+### Gallery Images
+
+Showcase your project with gallery images:
+
+<ParamField path="gallery_items" type="array">
+  Gallery images to display on your project page (up to 64 images)
+  
+  Each gallery item includes:
+  - `item` - Multipart field name for the image
+  - `featured` - Whether to show in search (only one can be featured)
+  - `name` - Image title (optional, 1-2048 characters)
+  - `description` - Image description (optional, 1-2048 characters)
+  - `ordering` - Display order (integer)
+  
+  **Image requirements**:
+  - Format: PNG, JPEG, WebP
+  - Maximum size: 5 MiB per image
+  - Automatically optimized and cropped to 350px width
+</ParamField>
+
+### External Links
+
+<ParamField path="link_urls" type="object">
+  External links for your project (issues, source, wiki, etc.)
+  
+  Key-value pairs where the key is the platform name and value is the URL.
+  
+  Example:
+  ```json
+  {
+    "github": "https://github.com/username/repo",
+    "discord": "https://discord.gg/invite",
+    "wiki": "https://wiki.example.com"
+  }
+  ```
+  
+  Get available platforms:
+  ```bash
+  GET /v3/link_platform
+  ```
+</ParamField>
+
+</Steps>
+
+## Initial Versions
+
+You must include at least one version when creating a project for review. See [Managing Versions](/creators/managing-versions) for detailed information about version requirements.
+
+<ParamField path="initial_versions" type="array" required>
+  Versions to create with your project (1-32 versions)
+  
+  Each version requires:
+  - Version number
+  - Version title
+  - File uploads
+  - Supported loaders (e.g., Fabric, Forge)
+  - Loader-specific fields (game versions, etc.)
+  - Release channel (release, beta, alpha)
+</ParamField>
+
+## Project Status
+
+<ParamField path="is_draft" type="boolean">
+  Create as a draft project
+  
+  - `true` - Save as draft without submitting for review
+  - `false` - Submit for moderation review (default)
+  
+  Draft projects:
+  - Not visible to the public
+  - Can be edited freely
+  - Must have at least one version to submit for review
+</ParamField>
+
+<ParamField path="requested_status" type="string">
+  Desired status after approval
+  
+  Options:
+  - `approved` - Listed and searchable (default)
+  - `unlisted` - Accessible via direct link only
+  - `private` - Only visible to team members
+</ParamField>
+
+## Organization Projects
+
+<ParamField path="organization_id" type="string">
+  Create project under an organization
+  
+  Requirements:
+  - You must be a member of the organization
+  - You need `ADD_PROJECT` organization permission
+  - Project owner will be the organization, not you
+</ParamField>
+
+## API Example
+
+Here's a complete example of creating a project via the API:
+
+```bash
+curl -X POST https://api.modrinth.com/v3/project \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F 'data={
+    "name": "My Awesome Mod",
+    "slug": "awesome-mod",
+    "summary": "A mod that makes Minecraft more awesome",
+    "description": "# My Awesome Mod\n\nThis mod adds amazing features...",
+    "categories": ["technology", "utility"],
+    "license_id": "MIT",
+    "initial_versions": [{
+      "version_number": "1.0.0",
+      "version_title": "Initial Release",
+      "version_body": "First release of the mod",
+      "file_parts": ["file"],
+      "loaders": [{"0": "fabric"}],
+      "fields": {
+        "game_versions": ["1.20.1", "1.20.2"]
+      },
+      "release_channel": "release",
+      "featured": true,
+      "dependencies": []
+    }],
+    "is_draft": false,
+    "requested_status": "approved"
+  }' \
+  -F 'icon=@icon.png' \
+  -F 'file=@mod-1.0.0.jar'
+```
+
+## Project Limits
+
+<Warning>
+Users have a maximum project limit based on their account standing. If you've reached your limit, you'll receive a `limit_reached` error.
+</Warning>
+
+To check your current usage:
+```bash
+GET /v3/user/{id}/projects
+```
+
+## Validation and Errors
+
+Common errors when creating projects:
+
+- **Slug collision** - The slug is already taken or conflicts with a project ID
+- **Invalid category** - Category doesn't exist or doesn't match project type  
+- **Invalid loader** - Loader not supported by Modrinth
+- **Invalid game version** - Game version not recognized
+- **Missing required fields** - Name, slug, summary, description, or license not provided
+- **File validation failed** - Uploaded files don't pass security/format checks
+- **Duplicate files** - File hash already exists in another project
+
+## After Creation
+
+Once your project is created:
+
+1. **Processing** - Your project enters moderation queue
+2. **Automated checks** - Files are scanned for security issues
+3. **Manual review** - Moderators review your project (if needed)
+4. **Approval** - Project becomes visible at your requested status
+
+<Note>
+Most projects are approved within 24-48 hours. You'll receive notifications about your project's status.
+</Note>
+
+## Next Steps
+
+- [Managing Versions](/creators/managing-versions) - Upload updates and new versions
+- [Teams and Permissions](/creators/teams-and-permissions) - Add collaborators
+- [Analytics](/creators/analytics) - Track your project's performance

@@ -1,0 +1,579 @@
+---
+title: Rust Client (Theseus)
+description: Rust library for building Minecraft launchers and managing Modrinth modpacks
+---
+
+Theseus is a Rust library that provides utilities for launching Minecraft, creating Modrinth modpacks, and managing Minecraft instances. It's the core library powering the Modrinth App.
+
+## Installation
+
+Add Theseus to your `Cargo.toml`:
+
+```toml
+[dependencies]
+theseus = { git = "https://github.com/modrinth/code", package = "theseus" }
+```
+
+For Tauri integration:
+
+```toml
+[dependencies]
+theseus = { git = "https://github.com/modrinth/code", package = "theseus", features = ["tauri"] }
+```
+
+## Features
+
+Theseus supports the following cargo features:
+
+- `cli` - Enables CLI progress indicators with `indicatif`
+- `tauri` - Enables Tauri-specific integrations
+
+## Library Overview
+
+Theseus provides a comprehensive API for:
+
+- **Profile Management** - Create, edit, and manage Minecraft instances
+- **Mod Installation** - Install mods from Modrinth or local files
+- **Pack Management** - Import and export `.mrpack` files
+- **Minecraft Launching** - Launch Minecraft with proper authentication and configuration
+- **API Integration** - Full integration with Modrinth's API
+- **State Management** - Persistent state management with SQLite
+
+## Core Modules
+
+### State Module
+
+The `State` is the central coordinator for all Theseus operations:
+
+```rust
+use theseus::State;
+
+// Initialize the state
+let state = State::get().await?;
+
+// Access various managers
+let pool = &state.pool;                    // Database connection pool
+let fetch_semaphore = &state.fetch_semaphore;  // Network request limiter
+let io_semaphore = &state.io_semaphore;        // File I/O limiter
+let process_manager = &state.process_manager;  // Running processes
+```
+
+### Profile Module
+
+Profiles represent Minecraft instances:
+
+```rust
+use theseus::profile::{self, Profile};
+
+// List all profiles
+let profiles = profile::list().await?;
+
+// Get a specific profile
+let profile = profile::get("my-instance").await?;
+
+// Get profile's full filesystem path
+let path = profile::get_full_path("my-instance").await?;
+```
+
+## Creating a Profile
+
+Create a new Minecraft instance:
+
+```rust
+use theseus::profile::create::{profile_create, ProfileCreateInfo};
+use theseus::state::ModLoader;
+
+let profile = profile_create(ProfileCreateInfo {
+    name: "My Modded Instance".to_string(),
+    game_version: "1.20.1".to_string(),
+    modloader: ModLoader::Fabric,
+    loader_version: Some("0.15.0".to_string()),
+    icon: None,
+    groups: vec![],
+    skip_install_profile: false,
+    linked_data: None,
+}).await?;
+
+println!("Created profile: {}", profile.path);
+```
+
+### Profile Fields
+
+```rust
+pub struct Profile {
+    pub path: String,                           // Profile identifier/path
+    pub install_stage: ProfileInstallStage,     // Installation status
+    pub name: String,                           // Display name
+    pub icon_path: Option<String>,              // Icon file path
+    pub game_version: String,                   // Minecraft version
+    pub loader: ModLoader,                      // Mod loader type
+    pub loader_version: Option<String>,         // Loader version
+    pub groups: Vec<String>,                    // Organization groups
+    pub linked_data: Option<LinkedData>,        // Modrinth project link
+    pub created: DateTime<Utc>,                 // Creation timestamp
+    pub modified: DateTime<Utc>,                // Last modified
+    pub last_played: Option<DateTime<Utc>>,     // Last play timestamp
+    pub java_path: Option<String>,              // Custom Java path
+    pub extra_launch_args: Option<Vec<String>>, // JVM arguments
+    pub memory: Option<MemorySettings>,         // Memory allocation
+    // ... additional fields
+}
+```
+
+### Mod Loaders
+
+```rust
+pub enum ModLoader {
+    Vanilla,
+    Forge,
+    NeoForge,
+    Fabric,
+    Quilt,
+}
+```
+
+## Editing a Profile
+
+Modify an existing profile:
+
+```rust
+use theseus::profile;
+
+// Edit using a closure
+profile::edit("my-instance", |prof| {
+    prof.name = "Updated Name".to_string();
+    prof.extra_launch_args = Some(vec!["-Xmx4G".to_string()]);
+    async { Ok(()) }
+}).await?;
+
+// Edit icon
+use std::path::Path;
+let icon_path = Path::new("/path/to/icon.png");
+profile::edit_icon("my-instance", Some(icon_path)).await?;
+```
+
+## Installing Minecraft
+
+Install or repair a profile's Minecraft installation:
+
+```rust
+use theseus::profile;
+
+// Install Minecraft for a profile
+profile::install("my-instance", false).await?;
+
+// Force reinstall
+profile::install("my-instance", true).await?;
+```
+
+## Installing Mods
+
+<Tabs>
+  <Tab title="From Modrinth Version">
+    ```rust
+    use theseus::profile;
+
+    // Install a mod by version ID
+    let mod_path = profile::add_project_from_version(
+        "my-instance",
+        "version_id_here"
+    ).await?;
+
+    println!("Installed mod at: {}", mod_path);
+    ```
+  </Tab>
+  <Tab title="From File">
+    ```rust
+    use theseus::profile;
+    use theseus::state::ProjectType;
+    use std::path::Path;
+
+    // Install from a .jar file
+    let jar_path = Path::new("/path/to/mod.jar");
+    let mod_path = profile::add_project_from_path(
+        "my-instance",
+        jar_path,
+        Some(ProjectType::Mod)
+    ).await?;
+    ```
+  </Tab>
+</Tabs>
+
+## Managing Mods
+
+```rust
+use theseus::profile;
+
+// Get all mods in a profile
+let mods = profile::get_projects("my-instance", None).await?;
+for (path, mod_file) in mods.iter() {
+    println!("Mod: {} at {}", mod_file.filename, path);
+}
+
+// Toggle mod enabled/disabled
+let new_path = profile::toggle_disable_project(
+    "my-instance",
+    "mods/sodium.jar"
+).await?;
+
+// Remove a mod
+profile::remove_project(
+    "my-instance",
+    "mods/old-mod.jar"
+).await?;
+
+// Update a mod to latest version
+let new_path = profile::update_project(
+    "my-instance",
+    "mods/sodium.jar",
+    None
+).await?;
+
+// Update all mods
+let updates = profile::update_all_projects("my-instance").await?;
+for (old_path, new_path) in updates {
+    println!("Updated: {} -> {}", old_path, new_path);
+}
+```
+
+## Launching Minecraft
+
+<Tabs>
+  <Tab title="Basic Launch">
+    ```rust
+    use theseus::profile::{self, QuickPlayType};
+
+    // Launch with default credentials
+    let process = profile::run(
+        "my-instance",
+        QuickPlayType::None
+    ).await?;
+
+    println!("Minecraft launched with PID: {}", process.uuid);
+    ```
+  </Tab>
+  <Tab title="Quick Play">
+    ```rust
+    use theseus::profile::{self, QuickPlayType};
+    use theseus::server_address::ServerAddress;
+
+    // Launch and join a server
+    let server = ServerAddress::parse("mc.hypixel.net")?;
+    let process = profile::run(
+        "my-instance",
+        QuickPlayType::Server(server)
+    ).await?;
+
+    // Launch and load a world
+    let process = profile::run(
+        "my-instance",
+        QuickPlayType::Singleplayer("World Name".to_string())
+    ).await?;
+    ```
+  </Tab>
+</Tabs>
+
+### Process Management
+
+```rust
+use theseus::process;
+
+// Get all running processes
+let processes = process::get_all().await?;
+for p in processes {
+    println!("Running: {} (UUID: {})", p.profile_path, p.uuid);
+}
+
+// Get processes for a specific profile
+let profile_processes = process::get_by_profile_path("my-instance").await?;
+
+// Kill a process
+process::kill(process_uuid).await?;
+
+// Wait for a process to exit
+process::wait_for(process_uuid).await?;
+
+// Kill all processes for a profile
+profile::kill("my-instance").await?;
+```
+
+## Pack Management
+
+### Installing a Modpack
+
+<Tabs>
+  <Tab title="From Modrinth">
+    ```rust
+    use theseus::pack::install_mrpack::install_zipped_mrpack;
+    use theseus::pack::install_from::CreatePackLocation;
+
+    let location = CreatePackLocation::FromVersionId {
+        project_id: "project_id".to_string(),
+        version_id: "version_id".to_string(),
+        title: "Pack Name".to_string(),
+        icon_url: None,
+    };
+
+    let profile_path = install_zipped_mrpack(
+        location,
+        "my-modpack".to_string()
+    ).await?;
+
+    println!("Installed modpack to: {}", profile_path);
+    ```
+  </Tab>
+  <Tab title="From File">
+    ```rust
+    use theseus::pack::install_mrpack::install_zipped_mrpack;
+    use theseus::pack::install_from::CreatePackLocation;
+    use std::path::PathBuf;
+
+    let mrpack_path = PathBuf::from("/path/to/modpack.mrpack");
+    let location = CreatePackLocation::FromFile {
+        path: mrpack_path,
+    };
+
+    let profile_path = install_zipped_mrpack(
+        location,
+        "imported-pack".to_string()
+    ).await?;
+    ```
+  </Tab>
+</Tabs>
+
+### Exporting a Modpack
+
+```rust
+use theseus::profile;
+use std::path::PathBuf;
+
+// Get export candidates (files/folders to include)
+let candidates = profile::get_pack_export_candidates("my-instance").await?;
+
+// Export to .mrpack
+let export_path = PathBuf::from("/path/to/output.mrpack");
+profile::export_mrpack(
+    "my-instance",
+    export_path,
+    candidates.iter().map(|c| c.to_string()).collect(),
+    Some("1.0.0".to_string()),  // Version ID
+    Some("My awesome modpack".to_string()),  // Description
+    None  // Name (uses profile name)
+).await?;
+
+println!("Exported modpack!");
+```
+
+## Authentication
+
+### Minecraft Authentication
+
+```rust
+use theseus::minecraft_auth;
+
+// Start OAuth flow
+let login_url = minecraft_auth::flow::begin_login().await?;
+println!("Login at: {}", login_url);
+
+// After user logs in, finish the flow with the code
+let credentials = minecraft_auth::flow::finish_login("auth_code").await?;
+
+// Set as default account
+use theseus::minecraft_auth::set_default_user;
+set_default_user(&credentials.offline_profile.id).await?;
+
+// Refresh credentials
+let refreshed = minecraft_auth::refresh(&credentials).await?;
+```
+
+### Modrinth Authentication
+
+```rust
+use theseus::mr_auth;
+
+// Authenticate with Modrinth
+let user = mr_auth::authenticate("mrp_token_here").await?;
+println!("Logged in as: {}", user.username);
+
+// Logout
+mr_auth::logout().await?;
+```
+
+## Settings Management
+
+```rust
+use theseus::settings::{self, Settings};
+use theseus::State;
+
+let state = State::get().await?;
+
+// Get current settings
+let settings = Settings::get(&state.pool).await?;
+
+// Modify settings
+let mut new_settings = settings.clone();
+new_settings.memory.maximum = 8192;  // 8 GB
+new_settings.force_fullscreen = true;
+
+// Update settings
+settings::update(new_settings).await?;
+```
+
+### Settings Fields
+
+```rust
+pub struct Settings {
+    pub memory: MemorySettings,              // Default memory allocation
+    pub game_resolution: WindowSize,         // Default window size
+    pub extra_launch_args: Vec<String>,      // Default JVM args
+    pub custom_env_vars: Vec<(String, String)>, // Environment variables
+    pub force_fullscreen: bool,              // Force fullscreen
+    pub theme: Theme,                        // UI theme
+    pub hooks: Hooks,                        // Launch hooks
+    // ... additional fields
+}
+
+pub struct MemorySettings {
+    pub minimum: u32,  // Minimum memory in MB
+    pub maximum: u32,  // Maximum memory in MB
+}
+
+pub struct WindowSize {
+    pub width: u32,
+    pub height: u32,
+}
+```
+
+## Java Runtime Management
+
+```rust
+use theseus::jre;
+
+// Get auto-installed Java versions
+let java_versions = jre::get_all_jres().await?;
+for version in java_versions {
+    println!("Java {}: {}", version.version, version.path);
+}
+
+// Auto-install Java for a profile
+let java_version = jre::autodetect_java_globals("my-instance").await?;
+
+// Validate a Java installation
+let is_valid = jre::validate_java_installation("/path/to/java").await?;
+```
+
+## Metadata and Cache
+
+### Fetching Minecraft Metadata
+
+```rust
+use theseus::metadata;
+
+// Get available Minecraft versions
+let versions = metadata::get_minecraft_versions().await?;
+for version in versions.versions {
+    println!("{} (type: {})", version.id, version.type_);
+}
+
+// Get loader versions
+let fabric_versions = metadata::get_fabric_versions().await?;
+let forge_versions = metadata::get_forge_versions().await?;
+```
+
+### Cache Management
+
+```rust
+use theseus::cache;
+use theseus::state::CacheBehaviour;
+
+// Clear all caches
+cache::clear_cache().await?;
+
+// Clear specific cache types
+cache::clear_cache_type("icons").await?;
+```
+
+## Error Handling
+
+Theseus uses a Result type with a custom error enum:
+
+```rust
+use theseus::{Error, ErrorKind};
+
+match some_operation().await {
+    Ok(result) => println!("Success: {:?}", result),
+    Err(Error::Error(kind)) => match kind {
+        ErrorKind::NoCredentialsError => {
+            println!("Please log in first");
+        }
+        ErrorKind::UnmanagedProfileError(path) => {
+            println!("Profile not found: {}", path);
+        }
+        ErrorKind::LauncherError(msg) => {
+            println!("Launch error: {}", msg);
+        }
+        _ => println!("Other error: {:?}", kind),
+    },
+}
+```
+
+## Logging
+
+Initialize Theseus logging:
+
+```rust
+use theseus::start_logger;
+
+// Start logger (uses tracing)
+start_logger();
+```
+
+## Example: Complete Launcher Flow
+
+```rust
+use theseus::{
+    State,
+    profile::{self, QuickPlayType},
+    profile::create::{profile_create, ProfileCreateInfo},
+    minecraft_auth,
+    state::ModLoader,
+};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize
+    theseus::start_logger();
+    let _state = State::get().await?;
+
+    // Authenticate
+    let login_url = minecraft_auth::flow::begin_login().await?;
+    println!("Login at: {}", login_url);
+    // ... user logs in, get auth_code ...
+    let credentials = minecraft_auth::flow::finish_login("auth_code").await?;
+    minecraft_auth::set_default_user(&credentials.offline_profile.id).await?;
+
+    // Create profile
+    let profile = profile_create(ProfileCreateInfo {
+        name: "My Instance".to_string(),
+        game_version: "1.20.1".to_string(),
+        modloader: ModLoader::Fabric,
+        loader_version: Some("0.15.0".to_string()),
+        icon: None,
+        groups: vec![],
+        skip_install_profile: false,
+        linked_data: None,
+    }).await?;
+
+    // Install a mod
+    profile::add_project_from_version(
+        &profile.path,
+        "AANobbMI"  // Sodium version ID
+    ).await?;
+
+    // Launch Minecraft
+    let process = profile::run(&profile.path, QuickPlayType::None).await?;
+    println!("Launched! UUID: {}", process.uuid);
+
+    Ok(())
+}
+```

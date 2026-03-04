@@ -1,0 +1,274 @@
+---
+title: Creating Modpacks
+description: Create and share your own modpacks with the Modrinth launcher
+---
+
+The Modrinth launcher lets you create custom modpacks by combining mods, resource packs, shaders, and configurations into a shareable package.
+
+## Starting a New Modpack
+
+There are several ways to start creating a modpack:
+
+<Tabs>
+  <Tab title="From Scratch">
+    <Steps>
+      <Step title="Create a new profile">
+        Click **Create Profile** and select your desired Minecraft version and mod loader.
+      </Step>
+      
+      <Step title="Add mods">
+        Browse and install mods from Modrinth or add them manually.
+      </Step>
+      
+      <Step title="Configure settings">
+        Adjust mod configurations, resource packs, and shader settings as needed.
+      </Step>
+      
+      <Step title="Export as modpack">
+        Right-click the profile and select **Export as Modpack**.
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="From Existing Profile">
+    <Steps>
+      <Step title="Duplicate profile">
+        Right-click an existing profile and select **Duplicate**. This creates an identical copy with all mods and settings.
+      </Step>
+      
+      <Step title="Customize">
+        Modify the duplicated profile by adding, removing, or updating mods.
+      </Step>
+      
+      <Step title="Export">
+        Export when ready to share.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Adding and Removing Mods
+
+### Adding Mods to Your Modpack
+
+You can add mods from multiple sources:
+
+1. **From Modrinth**: Browse the mod library and click Install
+2. **From file**: Drag and drop `.jar` files into the mods folder
+3. **By version ID**: Use the advanced installation option to install specific versions
+
+<Note>
+When you install a mod with dependencies, the launcher automatically adds all required dependencies to your modpack.
+</Note>
+
+### Removing Mods
+
+To remove mods from your modpack:
+
+- Right-click a mod in your instance and select **Uninstall**
+- Or delete the mod file from the `mods` folder
+
+<Warning>
+Removing a mod that other mods depend on may cause crashes. The launcher will warn you if dependencies will be broken.
+</Warning>
+
+## Configuring Mod Settings
+
+Customize your modpack's behavior through mod configurations:
+
+### Mod-Specific Configuration
+
+<Steps>
+  <Step title="Launch the game once">
+    Many mods create configuration files on first launch.
+  </Step>
+  
+  <Step title="Close the game">
+    Exit Minecraft to safely edit configuration files.
+  </Step>
+  
+  <Step title="Edit configs">
+    Navigate to your profile's `config` folder and modify the configuration files (usually `.toml`, `.json`, or `.properties` files).
+  </Step>
+  
+  <Step title="Test changes">
+    Launch the game again to verify your configuration changes work as expected.
+  </Step>
+</Steps>
+
+### Including Configurations in Export
+
+When exporting your modpack, you can choose which files to include:
+
+- **config/**: Mod configuration files
+- **resourcepacks/**: Custom resource packs
+- **shaderpacks/**: Shader packs
+- **options.txt**: Minecraft settings
+- **servers.dat**: Server list
+
+<Tip>
+Include configuration files in your modpack export to ensure players get the intended experience without manual setup.
+</Tip>
+
+## Exporting and Sharing Modpacks
+
+Export your modpack as a `.mrpack` file to share with others:
+
+<Steps>
+  <Step title="Open export dialog">
+    Right-click your profile and select **Export as Modpack**.
+  </Step>
+  
+  <Step title="Configure export options">
+    - **Name**: Give your modpack a descriptive name
+    - **Version**: Set the version number (e.g., "1.0.0")
+    - **Description**: Add a description explaining what your modpack includes
+    - **Files to include**: Select which folders/files to bundle:
+      - `mods/` (automatically included)
+      - `config/`
+      - `resourcepacks/`
+      - `shaderpacks/`
+      - `options.txt`
+      - Other custom files
+  </Step>
+  
+  <Step title="Choose export location">
+    Select where to save the `.mrpack` file on your computer.
+  </Step>
+  
+  <Step title="Export">
+    Click **Export** to create the modpack file.
+  </Step>
+</Steps>
+
+### Modpack Format
+
+Modrinth uses the `.mrpack` format:
+
+- **Standards-based**: Uses the Modrinth modpack specification
+- **Cross-launcher compatible**: Can be imported by other launchers supporting the format
+- **Metadata included**: Contains version info, dependencies, and project links
+- **Efficient**: Only includes override files; mods are downloaded on install
+
+<Note>
+The `.mrpack` format doesn't include the actual mod files (just references to them). This keeps the file size small and ensures users always get the latest compatible versions.
+</Note>
+
+### Publishing to Modrinth
+
+To share your modpack on Modrinth:
+
+1. Create a project on [modrinth.com](https://modrinth.com)
+2. Upload your `.mrpack` file as a version
+3. Add description, screenshots, and tags
+4. Publish for others to discover and install
+
+## Importing Existing Modpacks
+
+You can import modpacks from various sources:
+
+<Tabs>
+  <Tab title="From Modrinth">
+    1. Browse modpacks on modrinth.com
+    2. Click **Install** or download the `.mrpack` file
+    3. The launcher will automatically import and set up the modpack
+  </Tab>
+  
+  <Tab title="From File">
+    1. Click **Import** in the launcher
+    2. Select your `.mrpack` file
+    3. Choose installation location and name
+    4. The launcher will download all mods and extract overrides
+  </Tab>
+  
+  <Tab title="From Other Launchers">
+    The Modrinth launcher can import from:
+    - **CurseForge**: Import CurseForge modpacks
+    - **MultiMC/Prism**: Import instances from MultiMC-based launchers
+    - **ATLauncher**: Import ATLauncher packs
+    - **GDLauncher**: Import GDLauncher instances
+    
+    Select **Import from...** and choose your launcher to migrate instances.
+  </Tab>
+</Tabs>
+
+## Updating Modpacks
+
+Keep your modpack up to date:
+
+### Updating Individual Mods
+
+- Click the **Update** button next to mods with available updates
+- Or use **Update All** to update all mods at once
+
+### Versioning Your Modpack
+
+When making changes:
+
+1. Update the version number (e.g., 1.0.0 → 1.1.0)
+2. Document changes in the description
+3. Export and upload the new version
+
+<Tip>
+Use semantic versioning:
+- **Major** (1.0.0 → 2.0.0): Breaking changes or major overhauls
+- **Minor** (1.0.0 → 1.1.0): New mods or features
+- **Patch** (1.0.0 → 1.0.1): Bug fixes or small tweaks
+</Tip>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Test Thoroughly" icon="flask">
+    Always test your modpack before sharing to ensure:
+    - All mods load correctly
+    - No conflicts or crashes
+    - Performance is acceptable
+    - Configurations work as intended
+  </Card>
+  
+  <Card title="Document Everything" icon="book">
+    Provide clear documentation:
+    - List of included mods
+    - System requirements
+    - Known issues
+    - Installation instructions
+  </Card>
+  
+  <Card title="Balance Performance" icon="gauge">
+    Consider performance impact:
+    - Test on minimum spec systems
+    - Optimize configuration files
+    - Include performance mods if needed
+    - Set appropriate memory allocation
+  </Card>
+  
+  <Card title="Update Regularly" icon="arrows-rotate">
+    Maintain your modpack:
+    - Check for mod updates
+    - Fix reported bugs
+    - Add new content
+    - Communicate changes to users
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Export Fails
+
+- Ensure all mods are from Modrinth or included as overrides
+- Check for corrupted mod files
+- Verify you have write permissions to the export location
+
+### Large File Size
+
+- `.mrpack` files should be small (only overrides)
+- If large, you may be including unnecessary files
+- Check that mod files aren't being bundled (they should be referenced)
+
+### Import Issues
+
+- Verify the `.mrpack` file isn't corrupted
+- Check your internet connection for downloading mods
+- Ensure you have sufficient disk space
+- Review the launcher logs for specific errors

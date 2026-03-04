@@ -1,0 +1,239 @@
+---
+title: "What is Modrinth?"
+description: "The open-source platform for discovering, installing, and hosting Minecraft content"
+---
+
+Modrinth is a comprehensive, community-driven platform for Minecraft content distribution and management. Built from the ground up to be fast, accessible, and developer-friendly, Modrinth serves players, mod creators, and developers with a modern ecosystem of tools.
+
+## Platform Overview
+
+Modrinth consists of several integrated components that work together to provide a complete content management experience:
+
+<CardGroup cols={2}>
+  <Card title="Web Interface" icon="browser" href="https://modrinth.com">
+    A responsive, server-rendered website built with Nuxt 3 and Vue for browsing, searching, and managing projects from any device.
+  </Card>
+  <Card title="Desktop App" icon="desktop" href="https://modrinth.com/app">
+    A cross-platform launcher built with Tauri and Rust that provides instance management, automatic dependency resolution, and one-click mod installation.
+  </Card>
+  <Card title="Labrinth API" icon="code" href="/api/overview">
+    A high-performance REST API written in Rust that powers search, project metadata, version management, and user authentication.
+  </Card>
+  <Card title="Server Hosting" icon="server">
+    Integrated Minecraft server hosting with WebSocket-based management, automatic backups, and modpack deployment.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### For Players
+
+<Steps>
+  <Step title="One-Click Installation">
+    The Modrinth App automatically handles mod downloads, dependency resolution, and version compatibility. No manual file management required.
+  </Step>
+  <Step title="Instance Management">
+    Create and manage multiple Minecraft instances with different mod loaders (Fabric, Forge, Quilt, NeoForge), game versions, and mod configurations.
+  </Step>
+  <Step title="Automatic Updates">
+    Stay up-to-date with the latest versions of your favorite mods. The app notifies you of available updates and handles the installation process.
+  </Step>
+  <Step title="Cross-Platform Support">
+    Available for Windows, macOS, and Linux with a consistent experience across all platforms.
+  </Step>
+</Steps>
+
+### For Content Creators
+
+<CardGroup cols={2}>
+  <Card title="Project Hosting" icon="upload">
+    Host mods, modpacks, resource packs, data packs, shaders, and plugins with unlimited file storage and bandwidth.
+  </Card>
+  <Card title="Team Collaboration" icon="users">
+    Manage projects with your team using granular permissions and role-based access control.
+  </Card>
+  <Card title="Analytics Dashboard" icon="chart-line">
+    Track downloads, views, and user engagement with detailed analytics powered by ClickHouse.
+  </Card>
+  <Card title="Monetization Tools" icon="dollar-sign">
+    Earn revenue from your content through the built-in creator monetization program.
+  </Card>
+</CardGroup>
+
+### For Developers
+
+<Note>
+All Modrinth platform code is open source and available in the [GitHub monorepo](https://github.com/modrinth/code).
+</Note>
+
+**API Access**
+
+The Labrinth API provides comprehensive access to:
+- Project search with advanced filtering
+- Version metadata and file downloads
+- User profiles and authentication
+- Team management
+- Analytics data
+
+**Client Libraries**
+
+<CodeGroup>
+
+```typescript TypeScript/JavaScript
+// Using @modrinth/api-client
+import { injectModrinthClient } from '@modrinth/api-client'
+
+const client = injectModrinthClient()
+const project = await client.labrinth.v2.getProject('fabric-api')
+const versions = await client.labrinth.v2.getProjectVersions('fabric-api')
+```
+
+```rust Rust
+// Using the theseus library (app-lib)
+use theseus::api::metadata::get_minecraft_versions;
+use theseus::launcher::install_minecraft;
+
+let minecraft = get_minecraft_versions().await?;
+install_minecraft(&profile, None, false).await?;
+```
+
+</CodeGroup>
+
+## Technology Stack
+
+Modrinth is built with modern, performant technologies:
+
+### Frontend
+
+- **Web Interface**: Nuxt 3 (Vue 3) with server-side rendering, Tailwind CSS v3
+- **Desktop App**: Tauri 2.0 with Vue 3 frontend
+- **State Management**: TanStack Query v5 for server state, Pinia for client state
+- **Shared Components**: Monorepo architecture with shared `@modrinth/ui` component library
+
+### Backend
+
+- **API Server**: Rust with Actix Web
+- **Database**: PostgreSQL for relational data, ClickHouse for analytics
+- **Storage**: S3-compatible object storage for project files
+- **Search**: Custom search implementation with relevance ranking
+
+### Development
+
+- **Monorepo**: Turborepo + pnpm workspaces
+- **Type Safety**: TypeScript for frontend, Rust for backend
+- **Testing**: Vitest for unit tests, cargo-nextest for Rust tests
+
+## Who is Modrinth For?
+
+### Players
+
+If you want to:
+- Discover and install mods with minimal friction
+- Manage multiple Minecraft instances with different mod configurations
+- Keep your mods automatically updated
+- Play on modded servers with automatic client-side mod installation
+
+**Start here**: [Quickstart Guide](/quickstart)
+
+### Content Creators
+
+If you:
+- Develop mods, modpacks, resource packs, or other Minecraft content
+- Want to reach a large, engaged audience
+- Need team collaboration tools and analytics
+- Are interested in monetizing your content
+
+**Start here**: [Creating Projects](/creators/creating-projects)
+
+### Developers
+
+If you're building:
+- Custom launchers or mod managers
+- Integration tools for CI/CD pipelines
+- Analytics or discovery platforms
+- Server management tools
+
+**Start here**: [API Overview](/api/overview)
+
+### Server Hosts
+
+If you want to:
+- Deploy modpacks to multiplayer servers
+- Manage server instances with WebSocket APIs
+- Automate backups and updates
+- Provide players with automatic client configuration
+
+**Start here**: [Server Hosting](/hosting/getting-started)
+
+## Architecture Highlights
+
+<Accordion title="Instance Management">
+The Modrinth App uses a profile-based architecture where each instance is a self-contained environment with its own:
+- Game version (e.g., 1.20.1, 1.21)
+- Mod loader (Vanilla, Fabric, Forge, Quilt, NeoForge)
+- Installed mods and their dependencies
+- Java runtime environment
+- Configuration files and resource packs
+
+Instances can be linked to Modrinth modpacks for automatic updates and version locking.
+</Accordion>
+
+<Accordion title="Dependency Resolution">
+When installing a mod, the Modrinth App automatically:
+1. Checks for required dependencies in the mod's metadata
+2. Resolves version compatibility with the current instance
+3. Downloads and installs all dependencies recursively
+4. Validates that no conflicting mods are present
+5. Handles optional dependencies based on user preference
+
+This is implemented in the `app-lib` Rust package with `install_minecraft()` and version resolution logic.
+</Accordion>
+
+<Accordion title="Cross-Platform Compatibility">
+The desktop app uses Tauri, which bundles a Rust backend with a web-based frontend:
+- **Windows/macOS/Linux**: Native builds with platform-specific optimizations
+- **ARM64 Support**: Native Apple Silicon and ARM Linux builds
+- **Java Management**: Automatic JRE detection and installation for different architectures
+- **Path Handling**: Cross-platform path utilities in the `path-util` package
+</Accordion>
+
+<Accordion title="API Architecture">
+The Labrinth API is versioned (v2 and v3) with:
+- **RESTful Endpoints**: Standard HTTP methods for CRUD operations
+- **Pagination**: Offset-based pagination for large result sets
+- **Search**: Advanced search with faceted filtering and relevance scoring
+- **Rate Limiting**: Per-IP and per-user rate limits to ensure fair usage
+- **Authentication**: OAuth 2.0 with support for GitHub, Discord, and other providers
+</Accordion>
+
+## Open Source
+
+Modrinth is committed to transparency and community collaboration. The entire platform is open source:
+
+- **Source Code**: [github.com/modrinth/code](https://github.com/modrinth/code)
+- **License**: Individual packages are licensed separately (see LICENSE files)
+- **Contributing**: [Contributing Guide](/development/contributing)
+- **Community**: [Discord Server](https://discord.modrinth.com)
+
+<Note>
+Contributions are welcome! Whether you're fixing bugs, adding features, improving documentation, or translating to new languages, check out the [contributing guidelines](https://docs.modrinth.com/contributing/getting-started/).
+</Note>
+
+## Getting Started
+
+Ready to dive in? Choose your path:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running with Modrinth in minutes. Create an account, install the app, and add your first mod.
+  </Card>
+  <Card title="API Documentation" icon="code" href="/api/overview">
+    Explore the Labrinth REST API and start building integrations.
+  </Card>
+  <Card title="Desktop App" icon="desktop" href="/platform/desktop-app">
+    Learn about the Modrinth App's features and advanced configuration options.
+  </Card>
+  <Card title="Contributing" icon="github" href="/development/contributing">
+    Help build the future of Modrinth by contributing to the open-source project.
+  </Card>
+</CardGroup>

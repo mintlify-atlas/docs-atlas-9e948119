@@ -1,0 +1,678 @@
+---
+title: Backend (Labrinth)
+description: Modrinth's Rust backend API service
+---
+
+## Overview
+
+Labrinth is Modrinth's backend API service, written in Rust using the Actix-Web framework. It powers all Modrinth clients (web, desktop, mobile) with a RESTful API.
+
+**Location**: `apps/labrinth/`  
+**Language**: Rust (Edition 2024, v1.90.0+)  
+**Framework**: Actix-Web 4.x
+
+## Architecture
+
+Labrinth follows a layered architecture:
+
+```
+┌─────────────────────────────────────┐
+│       HTTP Routes (Actix-Web)       │
+├─────────────────────────────────────┤
+│        Business Logic Layer         │
+├─────────────────────────────────────┤
+│      Database Access (SQLx)         │
+├─────────────────────────────────────┤
+│  PostgreSQL │ ClickHouse │ Redis    │
+└─────────────────────────────────────┘
+```
+
+## Directory Structure
+
+```
+apps/labrinth/
+├── src/
+│   ├── main.rs              # Application entry point
+│   ├── lib.rs               # Library exports
+│   ├── env.rs               # Environment configuration
+│   ├── routes/              # HTTP route handlers
+│   │   ├── v2/              # API v2 endpoints
+│   │   ├── v3/              # API v3 endpoints
+│   │   ├── internal/        # Internal endpoints
+│   │   └── ...
+│   ├── models/              # Data models and types
+│   │   ├── projects.rs
+│   │   ├── versions.rs
+│   │   ├── users.rs
+│   │   └── ...
+│   ├── database/            # Database layer
+│   │   ├── models/          # Database model structs
+│   │   └── redis.rs         # Redis integration
+│   ├── auth/                # Authentication & authorization
+│   │   ├── checks.rs        # Permission checks
+│   │   └── session.rs       # Session management
+│   ├── queue/               # Background job queues
+│   ├── search/              # Meilisearch integration
+│   ├── file_hosting/        # S3 file storage
+│   ├── validate/            # Input validation
+│   ├── util/                # Utility functions
+│   ├── test/                # Test utilities
+│   ├── background_task.rs   # Background task scheduler
+│   ├── scheduler.rs         # Periodic task scheduler
+│   ├── clickhouse/          # ClickHouse analytics
+│   └── sync/                # Cross-service sync
+├── migrations/              # SQL migrations (SQLx)
+├── Cargo.toml               # Dependencies
+├── .env.docker-compose      # Docker environment
+├── Dockerfile               # Container build
+└── README.md
+```
+
+## Key Technologies
+
+### Web Framework: Actix-Web
+
+Actix-Web is a high-performance, actor-based web framework.
+
+```rust src/main.rs
+use actix_web::{web, App, HttpServer};
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .configure(routes::v3::config)
+            .configure(routes::v2::config)
+    })
+    .bind(("0.0.0.0", 8000))?
+    .run()
+    .await
+}
+```
+
+**Key Features**:
+- Actor-based concurrency model
+- Async/await with Tokio runtime
+- Middleware support (CORS, logging, rate limiting)
+- WebSocket support
+- OpenAPI documentation generation
+
+### Database: PostgreSQL + SQLx
+
+PostgreSQL 15 is the primary database, accessed via SQLx.
+
+**SQLx Features**:
+- Compile-time query verification
+- Async/await support
+- Connection pooling
+- Migrations support
+
+```rust Example Query
+use sqlx::PgPool;
+
+pub async fn get_project(
+    id: &str,
+    pool: &PgPool,
+) -> Result<Project, DatabaseError> {
+    sqlx::query_as!(
+        Project,
+        "
+        SELECT id, slug, title, description, published
+        FROM projects
+        WHERE id = $1 OR slug = $1
+        ",
+        id
+    )
+    .fetch_optional(pool)
+    .await?
+    .ok_or(DatabaseError::NotFound)
+}
+```
+
+**Offline Mode**: SQLx uses offline query metadata for CI builds:
+
+```bash
+# Prepare query cache (required before PR)
+cd apps/labrinth
+cargo sqlx prepare
+```
+
+<Warning>
+**NEVER run** `cargo sqlx prepare --workspace` - only run from `apps/labrinth/`
+</Warning>
+
+### Analytics: ClickHouse
+
+ClickHouse stores analytics events (downloads, views, searches).
+
+**Location**: `src/clickhouse/`
+
+```rust Example: Track Download
+use clickhouse::Client;
+
+pub async fn track_download(
+    version_id: &str,
+    ip: &str,
+    user_agent: &str,
+    clickhouse: &Client,
+) -> Result<()> {
+    clickhouse
+        .insert("downloads")
+        .execute(&Download {
+            version_id: version_id.to_string(),
+            timestamp: Utc::now(),
+            ip: ip.to_string(),
+            user_agent: user_agent.to_string(),
+        })
+        .await?;
+    Ok(())
+}
+```
+
+### Cache: Redis
+
+Redis is used for:
+- Session storage
+- Rate limiting
+- Temporary data caching
+- Real-time counters
+
+```rust Example: Rate Limiting
+use deadpool_redis::Pool;
+
+pub async fn check_rate_limit(
+    key: &str,
+    limit: usize,
+    redis: &Pool,
+) -> Result<bool, RedisError> {
+    let mut conn = redis.get().await?;
+    let count: usize = redis::cmd("INCR")
+        .arg(key)
+        .query_async(&mut conn)
+        .await?;
+    
+    if count == 1 {
+        redis::cmd("EXPIRE")
+            .arg(key)
+            .arg(60) // 1 minute
+            .query_async(&mut conn)
+            .await?;
+    }
+    
+    Ok(count <= limit)
+}
+```
+
+### Search: Meilisearch
+
+Meilisearch provides fast, typo-tolerant search.
+
+**Location**: `src/search/`
+
+```rust
+use meilisearch_sdk::Client;
+
+pub async fn search_projects(
+    query: &str,
+    facets: Vec<String>,
+    limit: usize,
+) -> Result<Vec<ProjectSearchResult>> {
+    let results = client
+        .index("projects")
+        .search()
+        .with_query(query)
+        .with_facets(&facets)
+        .with_limit(limit)
+        .execute::<ProjectSearchResult>()
+        .await?;
+    
+    Ok(results.hits.into_iter().map(|h| h.result).collect())
+}
+```
+
+### File Storage: S3
+
+Files (mod JARs, images, etc.) are stored in S3-compatible object storage.
+
+**Location**: `src/file_hosting/`
+
+```rust
+use rust_s3::Bucket;
+
+pub async fn upload_file(
+    path: &str,
+    content: Vec<u8>,
+    content_type: &str,
+    bucket: &Bucket,
+) -> Result<String> {
+    bucket
+        .put_object_with_content_type(path, &content, content_type)
+        .await?;
+    
+    Ok(format!("https://cdn.modrinth.com/{}", path))
+}
+```
+
+## API Routing
+
+Routes are organized by version and resource:
+
+```rust src/routes/v3/mod.rs
+use actix_web::web;
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/v3")
+            .configure(projects::config)
+            .configure(versions::config)
+            .configure(users::config)
+            .configure(teams::config)
+            .configure(search::config)
+    );
+}
+```
+
+### Route Example
+
+```rust src/routes/v3/projects.rs
+use actix_web::{web, HttpResponse};
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/project")
+            .route("/{id}", web::get().to(get_project))
+            .route("", web::post().to(create_project))
+    );
+}
+
+#[derive(Deserialize)]
+pub struct ProjectPath {
+    id: String,
+}
+
+pub async fn get_project(
+    path: web::Path<ProjectPath>,
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, ApiError> {
+    let project = database::project::get(&path.id, &pool).await?;
+    Ok(HttpResponse::Ok().json(project))
+}
+```
+
+## Authentication & Authorization
+
+### Session-Based Auth
+
+Users authenticate via GitHub OAuth, with sessions stored in Redis.
+
+```rust src/auth/session.rs
+use actix_web::{FromRequest, HttpRequest};
+
+pub struct User {
+    pub id: UserId,
+    pub username: String,
+    pub role: Role,
+}
+
+impl FromRequest for User {
+    async fn from_request(
+        req: &HttpRequest,
+        _: &mut Payload,
+    ) -> Result<Self, Self::Error> {
+        let session = req.extensions().get::<Session>().cloned()?;
+        let user_id = session.get::<UserId>("user_id")?;
+        let user = database::user::get(user_id, &pool).await?;
+        Ok(user)
+    }
+}
+```
+
+### API Token Auth
+
+API tokens (`mrp_...`) for programmatic access.
+
+```rust
+use actix_web::HttpRequest;
+
+pub async fn authenticate_token(
+    req: &HttpRequest,
+    pool: &PgPool,
+) -> Result<User, AuthError> {
+    let auth_header = req
+        .headers()
+        .get("Authorization")
+        .ok_or(AuthError::MissingToken)?;
+    
+    let token = auth_header
+        .to_str()?
+        .strip_prefix("Bearer ")
+        .ok_or(AuthError::InvalidFormat)?;
+    
+    let user = database::token::get_user(token, pool).await?;
+    Ok(user)
+}
+```
+
+### Permission Checks
+
+```rust src/auth/checks.rs
+pub fn can_edit_project(user: &User, project: &Project) -> bool {
+    user.role == Role::Admin ||
+    project.team.members.iter().any(|m| {
+        m.user_id == user.id &&
+        m.permissions.contains(Permission::EditProject)
+    })
+}
+```
+
+## Background Jobs
+
+Background tasks run in queues for async processing.
+
+**Location**: `src/queue/`
+
+```rust
+use tokio::sync::mpsc;
+
+pub enum Job {
+    IndexProject(ProjectId),
+    SendEmail { to: String, subject: String, body: String },
+    GenerateThumbnail(ImageId),
+}
+
+pub async fn enqueue(job: Job, queue: &mpsc::Sender<Job>) {
+    queue.send(job).await.unwrap();
+}
+
+pub async fn worker(mut rx: mpsc::Receiver<Job>) {
+    while let Some(job) = rx.recv().await {
+        match job {
+            Job::IndexProject(id) => index_project(id).await,
+            Job::SendEmail { to, subject, body } => {
+                send_email(&to, &subject, &body).await
+            }
+            Job::GenerateThumbnail(id) => generate_thumbnail(id).await,
+        }
+    }
+}
+```
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+cargo test -p labrinth --all-targets
+
+# Run specific test
+cargo test -p labrinth test_create_project
+
+# Run with output
+cargo test -p labrinth -- --nocapture
+```
+
+### Test Structure
+
+**Location**: `src/test/`
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::test;
+
+    #[actix_rt::test]
+    async fn test_get_project() {
+        let pool = setup_test_db().await;
+        let project = create_test_project(&pool).await;
+        
+        let result = get_project(&project.id, &pool).await;
+        assert!(result.is_ok());
+        
+        cleanup_test_db(&pool).await;
+    }
+}
+```
+
+## Local Development
+
+See [Local Setup](/development/local-setup) for complete instructions.
+
+### Quick Start
+
+```bash
+# Start services (PostgreSQL, Redis, ClickHouse, Meilisearch)
+docker compose up -d
+
+# Copy environment file
+cd apps/labrinth
+cp .env.docker-compose .env
+
+# Run migrations
+cargo sqlx migrate run
+
+# Start development server
+cargo run -p labrinth
+```
+
+Labrinth will be available at `http://localhost:8000`
+
+### Accessing Services
+
+```bash
+# PostgreSQL
+docker exec labrinth-postgres psql -U labrinth -d labrinth
+
+# ClickHouse
+docker exec labrinth-clickhouse clickhouse-client
+
+# Redis
+docker exec labrinth-redis redis-cli
+
+# Meilisearch UI
+open http://localhost:7700
+```
+
+## Pre-PR Checks
+
+Before opening a pull request:
+
+<Steps>
+  <Step title="Run Clippy">
+    **Zero warnings required** - CI will fail otherwise.
+    
+    ```bash
+    cargo clippy -p labrinth --all-targets
+    ```
+  </Step>
+  
+  <Step title="Format Code">
+    ```bash
+    cargo fmt
+    ```
+  </Step>
+  
+  <Step title="Prepare SQLx Cache">
+    ```bash
+    cd apps/labrinth
+    cargo sqlx prepare
+    ```
+    
+    This updates `.sqlx/` with query metadata for offline builds.
+  </Step>
+  
+  <Step title="Run Tests (optional)">
+    Tests take a long time, so only run if you've changed core logic:
+    
+    ```bash
+    cargo test -p labrinth --all-targets
+    ```
+  </Step>
+</Steps>
+
+## API Documentation
+
+Labrinth uses `utoipa` for OpenAPI documentation.
+
+**Swagger UI**: `http://localhost:8000/docs` (when running locally)
+
+```rust
+use utoipa::OpenApi;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        routes::v3::projects::get_project,
+        routes::v3::projects::create_project,
+    ),
+    components(schemas(Project, Version))
+)]
+struct ApiDoc;
+```
+
+See the [official API documentation](https://docs.modrinth.com/api/) for the complete API reference.
+
+## Deployment
+
+Labrinth is deployed as a Docker container.
+
+### Building the Docker Image
+
+```bash
+# Build image
+docker build -f apps/labrinth/Dockerfile -t labrinth .
+
+# Run container
+docker run -p 8000:8000 --env-file .env labrinth
+```
+
+### Release Profile
+
+Production builds use the `release-labrinth` profile:
+
+```toml Cargo.toml
+[profile.release-labrinth]
+inherits = "release"
+strip = false        # Keep debug symbols for Sentry
+panic = "unwind"     # Don't exit on panic in production
+```
+
+See [Deployment](/development/deployment) for CI/CD details.
+
+## Environment Variables
+
+Key environment variables (see `.env.docker-compose` for complete list):
+
+```bash
+# Database
+DATABASE_URL=postgres://labrinth:labrinth@localhost/labrinth
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# ClickHouse
+ANALYTICS_URL=http://localhost:8123
+ANALYTICS_DATABASE=staging_ariadne
+
+# Meilisearch
+MEILISEARCH_ADDR=http://localhost:7700
+MEILISEARCH_KEY=modrinth
+
+# S3
+S3_URL=https://s3.amazonaws.com
+S3_BUCKET_NAME=modrinth
+S3_ACCESS_TOKEN=...
+S3_SECRET=...
+
+# Auth
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+## Common Tasks
+
+### Adding a New Endpoint
+
+<Steps>
+  <Step title="Create Route Handler">
+    ```rust src/routes/v3/my_resource.rs
+    use actix_web::{web, HttpResponse};
+    
+    pub fn config(cfg: &mut web::ServiceConfig) {
+        cfg.route("/my-resource", web::get().to(get_resource));
+    }
+    
+    pub async fn get_resource() -> Result<HttpResponse, ApiError> {
+        Ok(HttpResponse::Ok().json(json!({ "status": "ok" })))
+    }
+    ```
+  </Step>
+  
+  <Step title="Register in Module">
+    ```rust src/routes/v3/mod.rs
+    mod my_resource;
+    
+    pub fn config(cfg: &mut web::ServiceConfig) {
+        cfg.configure(my_resource::config);
+    }
+    ```
+  </Step>
+  
+  <Step title="Add Tests">
+    ```rust
+    #[actix_rt::test]
+    async fn test_get_resource() {
+        let resp = get_resource().await.unwrap();
+        assert_eq!(resp.status(), 200);
+    }
+    ```
+  </Step>
+</Steps>
+
+### Adding a Database Migration
+
+```bash
+# Create migration
+cargo sqlx migrate add create_my_table
+
+# Edit the new file in migrations/
+# migrations/XXXXXX_create_my_table.sql
+```
+
+```sql
+CREATE TABLE my_table (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+```bash
+# Run migration
+cargo sqlx migrate run
+
+# Prepare SQLx cache
+cargo sqlx prepare
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Setup" icon="server" href="/development/local-setup">
+    Complete guide to running Labrinth locally
+  </Card>
+  
+  <Card title="Testing" icon="flask" href="/development/testing">
+    Learn about testing strategies
+  </Card>
+  
+  <Card title="API Documentation" icon="book" href="https://docs.modrinth.com/api/">
+    Full API reference
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/development/deployment">
+    Production deployment guide
+  </Card>
+</CardGroup>

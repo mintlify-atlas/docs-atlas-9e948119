@@ -1,0 +1,498 @@
+---
+title: "Versions API"
+description: "API endpoints for managing project versions and files"
+---
+
+## Get Version
+
+Retrieve a single version by its ID.
+
+```http
+GET /v3/version/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The version ID
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  The version's unique ID
+</ResponseField>
+
+<ResponseField name="project_id" type="string">
+  The ID of the project this version belongs to
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The version's name/title
+</ResponseField>
+
+<ResponseField name="version_number" type="string">
+  The version number (e.g., "1.0.0")
+</ResponseField>
+
+<ResponseField name="changelog" type="string">
+  The version's changelog (Markdown)
+</ResponseField>
+
+<ResponseField name="version_type" type="string">
+  Version type: `release`, `beta`, or `alpha`
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Version status: `listed`, `archived`, `draft`, `unlisted`, `scheduled`, `unknown`
+</ResponseField>
+
+<ResponseField name="featured" type="boolean">
+  Whether this version is featured
+</ResponseField>
+
+<ResponseField name="loaders" type="array">
+  List of compatible mod loaders (e.g., ["fabric", "quilt"])
+</ResponseField>
+
+<ResponseField name="dependencies" type="array">
+  List of version dependencies
+  <Expandable title="properties">
+    <ResponseField name="project_id" type="string">
+      The ID of the dependency project
+    </ResponseField>
+    <ResponseField name="version_id" type="string">
+      Specific version ID (if applicable)
+    </ResponseField>
+    <ResponseField name="file_name" type="string">
+      Specific file name (if applicable)
+    </ResponseField>
+    <ResponseField name="dependency_type" type="string">
+      Type: `required`, `optional`, `incompatible`, or `embedded`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="files" type="array">
+  List of files in this version
+  <Expandable title="properties">
+    <ResponseField name="hashes" type="object">
+      File hashes (sha1, sha512)
+    </ResponseField>
+    <ResponseField name="url" type="string">
+      Download URL
+    </ResponseField>
+    <ResponseField name="filename" type="string">
+      File name
+    </ResponseField>
+    <ResponseField name="primary" type="boolean">
+      Whether this is the primary file
+    </ResponseField>
+    <ResponseField name="size" type="integer">
+      File size in bytes
+    </ResponseField>
+    <ResponseField name="file_type" type="string">
+      File type: `required-resource-pack` or `optional-resource-pack`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="date_published" type="string">
+  ISO 8601 timestamp of publication
+</ResponseField>
+
+<ResponseField name="downloads" type="integer">
+  Download count
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/version/AANobbMI
+```
+
+### Example Response
+
+```json
+{
+  "id": "AANobbMI",
+  "project_id": "AANobbMI",
+  "name": "Sodium 0.5.8",
+  "version_number": "mc1.20.4-0.5.8",
+  "changelog": "## Changes\n- Fixed rendering issues...",
+  "version_type": "release",
+  "status": "listed",
+  "featured": true,
+  "loaders": ["fabric", "quilt"],
+  "dependencies": [
+    {
+      "project_id": "P7dR8mSH",
+      "dependency_type": "required"
+    }
+  ],
+  "files": [
+    {
+      "hashes": {
+        "sha1": "abc123...",
+        "sha512": "def456..."
+      },
+      "url": "https://cdn.modrinth.com/data/AANobbMI/versions/...",
+      "filename": "sodium-fabric-0.5.8.jar",
+      "primary": true,
+      "size": 524288
+    }
+  ],
+  "date_published": "2024-01-15T10:30:00Z",
+  "downloads": 150000
+}
+```
+
+---
+
+## Get Multiple Versions
+
+Retrieve multiple versions by their IDs.
+
+```http
+GET /v3/versions?ids=["id1","id2"]&include_changelog=true
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of version IDs as a string
+</ParamField>
+
+<ParamField query="include_changelog" type="boolean">
+  Whether to include changelog text (default: true)
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/versions?ids=["AANobbMI","BBxxyyzz"]&include_changelog=false'
+```
+
+---
+
+## Get Project Versions
+
+Get all versions for a project with optional filtering.
+
+```http
+GET /v3/project/{project_id}/version
+```
+
+### Path Parameters
+
+<ParamField path="project_id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="loaders" type="string">
+  JSON array of loaders to filter by (e.g., `["fabric","quilt"]`)
+</ParamField>
+
+<ParamField query="featured" type="boolean">
+  Filter to only featured versions
+</ParamField>
+
+<ParamField query="version_type" type="string">
+  Filter by version type: `release`, `beta`, or `alpha`
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Maximum number of versions to return
+</ParamField>
+
+<ParamField query="offset" type="integer">
+  Offset for pagination
+</ParamField>
+
+<ParamField query="loader_fields" type="string">
+  JSON object of loader fields to filter by (e.g., `{"game_versions":["1.20.4"]}`)
+</ParamField>
+
+<ParamField query="include_changelog" type="boolean">
+  Whether to include changelog (default: true)
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/project/sodium/version?loaders=["fabric"]&limit=10'
+```
+
+---
+
+## Get Version by Number
+
+Get a specific version by project and version number.
+
+```http
+GET /v3/project/{project_id}/version/{version_number}
+```
+
+### Path Parameters
+
+<ParamField path="project_id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+<ParamField path="version_number" type="string" required>
+  The version number or version ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/project/sodium/version/mc1.20.4-0.5.8
+```
+
+---
+
+## Create Version
+
+Create a new version for a project. Requires authentication and `VERSION_CREATE` scope.
+
+```http
+POST /v3/version
+```
+
+### Request Body (multipart/form-data)
+
+<ParamField body="data" type="JSON" required>
+  Version metadata as JSON:
+  
+  <Expandable title="properties">
+    <ParamField body="project_id" type="string" required>
+      The project ID
+    </ParamField>
+    
+    <ParamField body="version_number" type="string" required>
+      Version number (1-32 characters, URL-safe)
+    </ParamField>
+    
+    <ParamField body="version_title" type="string" required>
+      Version title/name (1-64 characters)
+    </ParamField>
+    
+    <ParamField body="version_body" type="string">
+      Changelog in Markdown (max 65536 characters)
+    </ParamField>
+    
+    <ParamField body="release_channel" type="string" required>
+      Version type: `release`, `beta`, or `alpha`
+    </ParamField>
+    
+    <ParamField body="loaders" type="array" required>
+      List of compatible loaders (e.g., ["fabric", "forge"])
+    </ParamField>
+    
+    <ParamField body="featured" type="boolean">
+      Whether to feature this version
+    </ParamField>
+    
+    <ParamField body="dependencies" type="array">
+      List of dependencies (max 4096)
+    </ParamField>
+    
+    <ParamField body="file_parts" type="array" required>
+      List of file part names from the multipart request
+    </ParamField>
+    
+    <ParamField body="primary_file" type="string">
+      Name of the primary file
+    </ParamField>
+    
+    <ParamField body="status" type="string">
+      Version status (default: `listed`)
+    </ParamField>
+    
+    <ParamField body="file_types" type="object">
+      Map of filenames to file types
+    </ParamField>
+    
+    <ParamField body="ordering" type="integer">
+      Custom ordering value
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="file" type="file" required>
+  One or more file parts (referenced in `file_parts`)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/version \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F 'data={
+    "project_id": "AANobbMI",
+    "version_number": "1.0.0",
+    "version_title": "Release 1.0.0",
+    "version_body": "Initial release",
+    "release_channel": "release",
+    "loaders": ["fabric"],
+    "featured": true,
+    "dependencies": [],
+    "file_parts": ["file"],
+    "game_versions": ["1.20.4"]
+  }' \
+  -F 'file=@my-mod-1.0.0.jar'
+```
+
+---
+
+## Update Version
+
+Update version metadata. Requires authentication and `VERSION_WRITE` scope.
+
+```http
+PATCH /v3/version/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The version ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string">
+  New version name (1-64 characters)
+</ParamField>
+
+<ParamField body="version_number" type="string">
+  New version number (1-32 characters)
+</ParamField>
+
+<ParamField body="changelog" type="string">
+  New changelog (max 65536 characters)
+</ParamField>
+
+<ParamField body="version_type" type="string">
+  New version type: `release`, `beta`, or `alpha`
+</ParamField>
+
+<ParamField body="dependencies" type="array">
+  New dependencies list (max 4096)
+</ParamField>
+
+<ParamField body="loaders" type="array">
+  New loaders list
+</ParamField>
+
+<ParamField body="featured" type="boolean">
+  Set featured status
+</ParamField>
+
+<ParamField body="status" type="string">
+  New status
+</ParamField>
+
+<ParamField body="file_types" type="array">
+  Update file types for existing files
+</ParamField>
+
+<ParamField body="ordering" type="integer">
+  Custom ordering value
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/version/AANobbMI \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sodium 0.5.9",
+    "changelog": "## Bug Fixes\n- Fixed memory leak",
+    "featured": true
+  }'
+```
+
+---
+
+## Delete Version
+
+Delete a version. Requires authentication and `VERSION_DELETE` scope.
+
+```http
+DELETE /v3/version/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The version ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/version/AANobbMI \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Upload File to Version
+
+Add additional files to an existing version. Requires authentication.
+
+```http
+POST /v3/version/{version_id}/file
+```
+
+### Path Parameters
+
+<ParamField path="version_id" type="string" required>
+  The version ID
+</ParamField>
+
+### Request Body (multipart/form-data)
+
+<ParamField body="data" type="JSON">
+  Optional file metadata
+</ParamField>
+
+<ParamField body="file" type="file" required>
+  The file to upload
+</ParamField>
+
+---
+
+## Common Use Cases
+
+**Publishing a New Version**
+1. Prepare version metadata (name, version number, changelog)
+2. Build and test your mod/modpack files
+3. Create version via POST /v3/version with multipart form data
+4. Wait for automatic validation and processing
+
+**Managing Dependencies**
+- Use `project_id` for general dependency on any version
+- Use `version_id` for specific version requirement
+- Use `file_name` for external dependencies
+- Types: `required` (must have), `optional` (recommended), `incompatible` (conflicts), `embedded` (bundled)
+
+**Loader Fields**
+
+Loader-specific fields can be passed as flattened properties:
+- `game_versions`: Array of Minecraft versions (e.g., ["1.20.4", "1.20.3"])
+- Other loader-specific fields depend on the loader type
+
+**File Types**
+- Primary file: Main mod/modpack JAR
+- `required-resource-pack`: Must be installed with the mod
+- `optional-resource-pack`: Optional companion resource pack
+
+**Version Ordering**
+- Versions are typically ordered by `date_published` (newest first)
+- Use `ordering` field for custom sort order
+- Use `featured` flag to highlight important versions

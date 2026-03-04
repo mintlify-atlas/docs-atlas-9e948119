@@ -1,0 +1,390 @@
+---
+title: 'Tags & Loaders'
+description: 'Get available tags including loaders, game versions, categories, and licenses'
+icon: 'tags'
+---
+
+## Overview
+
+The tags API provides access to all available metadata tags used throughout Modrinth, including loaders, game versions, categories, licenses, and more.
+
+## Get Available Games
+
+```bash
+GET /v3/games
+```
+
+Returns a list of all supported games on Modrinth.
+
+### Response
+
+<ResponseField name="games" type="array">
+  Array of game objects.
+  
+  <Expandable title="Game Object">
+    <ResponseField name="slug" type="string">
+      The unique identifier for the game
+      
+      Example: `minecraft`
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Display name of the game
+      
+      Example: `Minecraft`
+    </ResponseField>
+    
+    <ResponseField name="icon" type="string">
+      URL to the game icon
+    </ResponseField>
+    
+    <ResponseField name="banner" type="string">
+      URL to the game banner image
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/games"
+```
+
+## Get Loaders
+
+```bash
+GET /v3/tag/loader
+```
+
+Returns a list of all available loaders (Fabric, Forge, Quilt, NeoForge, etc.).
+
+### Response
+
+<ResponseField name="loaders" type="array">
+  Array of loader objects.
+  
+  <Expandable title="Loader Object">
+    <ResponseField name="name" type="string">
+      The loader name/identifier
+      
+      Example: `fabric`, `forge`, `quilt`, `neoforge`
+    </ResponseField>
+    
+    <ResponseField name="icon" type="string">
+      SVG icon for the loader
+    </ResponseField>
+    
+    <ResponseField name="supported_project_types" type="string[]">
+      Array of project types this loader supports
+      
+      Example: `["mod", "modpack"]`
+    </ResponseField>
+    
+    <ResponseField name="supported_games" type="string[]">
+      Array of game slugs this loader supports
+      
+      Example: `["minecraft"]`
+    </ResponseField>
+    
+    <ResponseField name="supported_fields" type="string[]">
+      Array of loader field names available for this loader
+      
+      Example: `["game_versions", "environment"]`
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object">
+      Additional metadata about the loader
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/tag/loader"
+```
+
+## Get Categories
+
+```bash
+GET /v3/tag/category
+```
+
+Returns all available project categories.
+
+### Response
+
+<ResponseField name="categories" type="array">
+  Array of category objects.
+  
+  <Expandable title="Category Object">
+    <ResponseField name="name" type="string">
+      The category identifier
+      
+      Example: `adventure`, `technology`, `optimization`
+    </ResponseField>
+    
+    <ResponseField name="icon" type="string">
+      SVG icon for the category
+    </ResponseField>
+    
+    <ResponseField name="project_type" type="string">
+      The project type this category belongs to
+      
+      Example: `mod`, `modpack`, `resourcepack`
+    </ResponseField>
+    
+    <ResponseField name="header" type="string">
+      Display header for the category
+      
+      Example: `Categories`, `Resolutions`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/tag/category"
+```
+
+## Get Loader Fields
+
+```bash
+GET /v3/loader_field
+```
+
+Returns enumerable values for a specific loader field (like game versions).
+
+### Query Parameters
+
+<ParamField query="loader_field" type="string" required>
+  The name of the loader field to get values for.
+  
+  Common fields:
+  - `game_versions` - Available game versions
+  - `environment` - Environment types
+  - `singleplayer` - Singleplayer support
+  - `client_and_server` - Client/server support
+  
+  Example: `game_versions`
+</ParamField>
+
+<ParamField query="filters" type="object">
+  Optional filters to apply to the field values as JSON object.
+  
+  For game versions, you can filter by:
+  - `type` - Version type (release, snapshot, beta, alpha)
+  - `major` - Boolean for major versions only
+  
+  Example: `{"type": "release", "major": true}`
+</ParamField>
+
+### Response
+
+<ResponseField name="values" type="array">
+  Array of loader field value objects.
+  
+  <Expandable title="Loader Field Value">
+    <ResponseField name="value" type="string">
+      The field value
+      
+      Example: `1.20.1`, `1.19.4`
+    </ResponseField>
+    
+    <ResponseField name="created" type="string">
+      RFC 3339 timestamp when this value was created
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object">
+      Additional metadata about this value
+      
+      For game versions:
+      - `type` - Version type (release, snapshot, etc.)
+      - `major` - Boolean indicating if this is a major version
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Examples
+
+#### Get All Game Versions
+
+```bash
+curl "https://api.modrinth.com/v3/loader_field?loader_field=game_versions"
+```
+
+#### Get Major Release Versions Only
+
+```bash
+curl "https://api.modrinth.com/v3/loader_field?loader_field=game_versions&filters=%7B%22type%22%3A%22release%22%2C%22major%22%3Atrue%7D"
+```
+
+## Get Licenses
+
+```bash
+GET /v3/license
+```
+
+Returns all SPDX license identifiers.
+
+### Response
+
+<ResponseField name="licenses" type="array">
+  Array of license objects.
+  
+  <Expandable title="License Object">
+    <ResponseField name="short" type="string">
+      SPDX license identifier
+      
+      Example: `MIT`, `GPL-3.0`, `Apache-2.0`
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Full license name
+      
+      Example: `MIT License`, `GNU General Public License v3.0`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/license"
+```
+
+## Get License Text
+
+```bash
+GET /v3/license/{id}
+```
+
+Returns the full text of a specific license.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  SPDX license identifier or special identifier.
+  
+  Use `ARR` for the default "All Rights Reserved" license.
+  
+  Example: `MIT`, `GPL-3.0`, `ARR`
+</ParamField>
+
+### Response
+
+<ResponseField name="title" type="string">
+  License title
+</ResponseField>
+
+<ResponseField name="body" type="string">
+  Full license text
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/license/MIT"
+```
+
+## Get Link Platforms
+
+```bash
+GET /v3/link_platform
+```
+
+Returns all available link platforms (for project links and donation platforms).
+
+### Response
+
+<ResponseField name="platforms" type="array">
+  Array of platform objects.
+  
+  <Expandable title="Platform Object">
+    <ResponseField name="name" type="string">
+      Platform identifier
+      
+      Example: `github`, `discord`, `patreon`
+    </ResponseField>
+    
+    <ResponseField name="donation" type="boolean">
+      Whether this platform is for donations
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/link_platform"
+```
+
+## Get Report Types
+
+```bash
+GET /v3/report_type
+```
+
+Returns all available report types for content moderation.
+
+### Response
+
+<ResponseField name="report_types" type="string[]">
+  Array of report type identifiers
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/report_type"
+```
+
+## Get Project Types
+
+```bash
+GET /v3/project_type
+```
+
+Returns all available project types.
+
+### Response
+
+<ResponseField name="project_types" type="string[]">
+  Array of project type identifiers
+  
+  Common values: `mod`, `modpack`, `resourcepack`, `shader`, `datapack`, `plugin`
+</ResponseField>
+
+### Example
+
+```bash
+curl "https://api.modrinth.com/v3/project_type"
+```
+
+## Caching
+
+<Info>
+  All tag endpoints are heavily cached using Redis. Results are cached for extended periods as tag data rarely changes. You can safely cache these responses on the client side as well.
+</Info>
+
+## Common Use Cases
+
+<Accordion title="Building a Mod Browser">
+  1. Fetch available loaders with `GET /v3/tag/loader`
+  2. Get game versions with `GET /v3/loader_field?loader_field=game_versions`
+  3. Fetch categories with `GET /v3/tag/category`
+  4. Use these to build filter UI for search
+</Accordion>
+
+<Accordion title="Version Compatibility Checking">
+  1. Get loader field values for `game_versions`
+  2. Filter by version type if needed
+  3. Cross-reference with project version requirements
+</Accordion>
+
+<Accordion title="License Validation">
+  1. Fetch all licenses with `GET /v3/license`
+  2. Validate user input against SPDX identifiers
+  3. Optionally display full license text with `GET /v3/license/{id}`
+</Accordion>

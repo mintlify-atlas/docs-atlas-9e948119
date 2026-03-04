@@ -1,0 +1,494 @@
+---
+title: "Projects API"
+description: "API endpoints for managing Modrinth projects (mods, modpacks, resource packs, etc.)"
+---
+
+## Get Project
+
+Retrieve a single project by its ID or slug.
+
+```http
+GET /v3/project/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  The project's unique ID
+</ResponseField>
+
+<ResponseField name="slug" type="string">
+  The project's URL-safe slug
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The project's name
+</ResponseField>
+
+<ResponseField name="summary" type="string">
+  A short summary of the project
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The full project description
+</ResponseField>
+
+<ResponseField name="categories" type="array">
+  List of category names (max 3)
+</ResponseField>
+
+<ResponseField name="additional_categories" type="array">
+  List of additional category names (max 256)
+</ResponseField>
+
+<ResponseField name="license" type="object">
+  The project's license information
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      SPDX license identifier
+    </ResponseField>
+    <ResponseField name="url" type="string">
+      URL to the license text
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Project status: `approved`, `rejected`, `draft`, `unlisted`, `archived`, `processing`, `withheld`, `scheduled`, `private`, `unknown`
+</ResponseField>
+
+<ResponseField name="downloads" type="integer">
+  Total download count
+</ResponseField>
+
+<ResponseField name="followers" type="integer">
+  Number of followers
+</ResponseField>
+
+<ResponseField name="published" type="string">
+  ISO 8601 timestamp of when the project was first published
+</ResponseField>
+
+<ResponseField name="updated" type="string">
+  ISO 8601 timestamp of when the project was last updated
+</ResponseField>
+
+<ResponseField name="team_id" type="string">
+  The ID of the project's team
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/project/sodium
+```
+
+### Example Response
+
+```json
+{
+  "id": "AANobbMI",
+  "slug": "sodium",
+  "name": "Sodium",
+  "summary": "A modern rendering engine for Minecraft",
+  "description": "Sodium is a free and open-source mod...",
+  "categories": ["optimization", "fabric"],
+  "additional_categories": [],
+  "license": {
+    "id": "LGPL-3.0-only",
+    "url": "https://cdn.modrinth.com/licenses/lgpl-3.txt"
+  },
+  "status": "approved",
+  "downloads": 50000000,
+  "followers": 25000,
+  "published": "2020-07-07T00:00:00Z",
+  "updated": "2024-01-15T10:30:00Z",
+  "team_id": "3vHspAEn"
+}
+```
+
+---
+
+## Get Multiple Projects
+
+Retrieve multiple projects by their IDs or slugs.
+
+```http
+GET /v3/projects?ids=["id1","id2"]
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of project IDs or slugs as a string
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/projects?ids=["sodium","lithium"]'
+```
+
+---
+
+## Check Project ID
+
+Check if a project ID or slug exists and get its canonical ID.
+
+```http
+GET /v3/project/{id}/check
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug to check
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  The canonical project ID if it exists
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/project/sodium/check
+```
+
+---
+
+## Search Projects
+
+Search for projects with filters.
+
+```http
+GET /v3/search
+```
+
+### Query Parameters
+
+<ParamField query="query" type="string">
+  The search query
+</ParamField>
+
+<ParamField query="facets" type="string">
+  Facets to filter by (JSON string)
+</ParamField>
+
+<ParamField query="index" type="string">
+  The sorting method: `relevance`, `downloads`, `follows`, `newest`, `updated`
+</ParamField>
+
+<ParamField query="offset" type="integer">
+  The offset for pagination (default: 0)
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Number of results to return (default: 10, max: 100)
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/search?query=optimization&facets=[["categories:fabric"]]&limit=20'
+```
+
+---
+
+## Get Random Projects
+
+Get a random selection of projects.
+
+```http
+GET /v3/projects_random?count=10
+```
+
+### Query Parameters
+
+<ParamField query="count" type="integer" required>
+  Number of random projects to return (min: 1, max: 100)
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/projects_random?count=5'
+```
+
+---
+
+## Update Project
+
+Update a project's metadata. Requires authentication and `PROJECT_WRITE` scope.
+
+```http
+PATCH /v3/project/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string">
+  New project name (3-64 characters)
+</ParamField>
+
+<ParamField body="summary" type="string">
+  New project summary (3-256 characters)
+</ParamField>
+
+<ParamField body="description" type="string">
+  New project description (max 65536 characters)
+</ParamField>
+
+<ParamField body="categories" type="array">
+  New categories array (max 3)
+</ParamField>
+
+<ParamField body="additional_categories" type="array">
+  New additional categories (max 256)
+</ParamField>
+
+<ParamField body="license_id" type="string">
+  SPDX license identifier
+</ParamField>
+
+<ParamField body="license_url" type="string">
+  URL to license text (max 2048 characters)
+</ParamField>
+
+<ParamField body="slug" type="string">
+  New URL-safe slug (3-64 characters)
+</ParamField>
+
+<ParamField body="status" type="string">
+  New project status
+</ParamField>
+
+<ParamField body="link_urls" type="object">
+  Object mapping platform names to URLs (or null to delete)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/project/sodium \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "summary": "An updated summary",
+    "categories": ["optimization", "fabric", "performance"]
+  }'
+```
+
+---
+
+## Bulk Edit Projects
+
+Edit multiple projects at once. Requires authentication.
+
+```http
+PATCH /v3/projects?ids=["id1","id2"]
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of project IDs
+</ParamField>
+
+### Request Body
+
+<ParamField body="categories" type="array">
+  Set categories for all projects
+</ParamField>
+
+<ParamField body="add_categories" type="array">
+  Add categories to all projects
+</ParamField>
+
+<ParamField body="remove_categories" type="array">
+  Remove categories from all projects
+</ParamField>
+
+<ParamField body="additional_categories" type="array">
+  Set additional categories
+</ParamField>
+
+<ParamField body="add_additional_categories" type="array">
+  Add additional categories
+</ParamField>
+
+<ParamField body="remove_additional_categories" type="array">
+  Remove additional categories
+</ParamField>
+
+<ParamField body="link_urls" type="object">
+  Update link URLs for all projects
+</ParamField>
+
+---
+
+## Delete Project
+
+Delete a project. Requires authentication and appropriate permissions.
+
+```http
+DELETE /v3/project/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/project/my-project \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Follow/Unfollow Project
+
+Follow or unfollow a project. Requires authentication.
+
+```http
+POST /v3/project/{id}/follow
+DELETE /v3/project/{id}/follow
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Example Request
+
+```bash
+# Follow a project
+curl -X POST https://api.modrinth.com/v3/project/sodium/follow \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Unfollow a project
+curl -X DELETE https://api.modrinth.com/v3/project/sodium/follow \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Project Dependencies
+
+Get all dependencies for a project.
+
+```http
+GET /v3/project/{project_id}/dependencies
+```
+
+### Path Parameters
+
+<ParamField path="project_id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Response
+
+<ResponseField name="projects" type="array">
+  Array of dependent projects
+</ResponseField>
+
+<ResponseField name="versions" type="array">
+  Array of specific dependent versions
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/project/iris/dependencies
+```
+
+---
+
+## Manage Project Icon
+
+Upload or delete a project icon. Requires authentication.
+
+```http
+PATCH /v3/project/{id}/icon?ext=png
+DELETE /v3/project/{id}/icon
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The project ID or slug
+</ParamField>
+
+### Query Parameters (PATCH only)
+
+<ParamField query="ext" type="string" required>
+  Image file extension (png, jpg, etc.)
+</ParamField>
+
+### Example Request
+
+```bash
+# Upload icon
+curl -X PATCH 'https://api.modrinth.com/v3/project/sodium/icon?ext=png' \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: image/png" \
+  --data-binary '@icon.png'
+
+# Delete icon
+curl -X DELETE https://api.modrinth.com/v3/project/sodium/icon \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Manage Gallery Images
+
+Add, edit, or delete gallery images. Requires authentication.
+
+```http
+POST /v3/project/{id}/gallery?ext=png&featured=true
+PATCH /v3/project/{id}/gallery?url=...&title=...&description=...
+DELETE /v3/project/{id}/gallery?url=...
+```
+
+### Common Use Cases
+
+**Creating a New Project**
+1. Prepare project metadata
+2. Create the project via API or web interface
+3. Upload initial version with files
+4. Set project icon and gallery images
+5. Submit for approval if needed
+
+**Managing Project Visibility**
+- Use `status` field to control project visibility
+- `approved` - Public and searchable
+- `unlisted` - Public but not in search
+- `private` - Only visible to team members
+- `draft` - Not yet published
+
+**Working with Categories**
+- Main categories (max 3) are used for primary classification
+- Additional categories (max 256) for more specific tags
+- Categories must exist in the platform's category list

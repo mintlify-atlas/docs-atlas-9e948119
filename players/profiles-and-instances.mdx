@@ -1,0 +1,406 @@
+---
+title: Profiles and Instances
+description: Learn how to create and manage profiles and instances in the Modrinth launcher
+---
+
+Profiles (also called instances) are isolated Minecraft installations with their own mods, configurations, saves, and settings. Each profile can have a different Minecraft version, mod loader, and set of mods.
+
+## Understanding Profiles
+
+A profile is a complete, self-contained Minecraft installation:
+
+- **Independent**: Each profile has its own mods, saves, resource packs, and settings
+- **Isolated**: Changes to one profile don't affect others
+- **Flexible**: Mix different Minecraft versions, mod loaders, and mod combinations
+- **Organized**: Keep different playstyles, modpacks, or servers separate
+
+<Info>
+Profiles are stored in separate folders, so you can have hundreds of profiles without conflicts. Each profile can be 100MB to several GB depending on mods and worlds.
+</Info>
+
+## Creating Profiles
+
+Create a new profile to start a fresh Minecraft installation:
+
+<Steps>
+  <Step title="Click Create Profile">
+    In the launcher, click the **+ Create Profile** button or **New Instance**.
+  </Step>
+  
+  <Step title="Choose creation method">
+    Select how to create your profile:
+    
+    <Tabs>
+      <Tab title="Vanilla">
+        Start with a clean Minecraft installation:
+        1. Select Minecraft version
+        2. Choose **Vanilla** as the mod loader
+        3. Name your profile
+        4. Click **Create**
+      </Tab>
+      
+      <Tab title="With Mod Loader">
+        Start with a mod loader pre-installed:
+        1. Select Minecraft version
+        2. Choose mod loader (Fabric, Forge, Quilt, or NeoForge)
+        3. Select loader version (latest/stable recommended)
+        4. Name your profile
+        5. Click **Create**
+      </Tab>
+      
+      <Tab title="From Modpack">
+        Install a pre-made modpack:
+        1. Browse modpacks on Modrinth
+        2. Click **Install** on a modpack
+        3. The launcher creates a profile automatically
+        4. Customize the name if desired
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Wait for installation">
+    The launcher will:
+    - Download Minecraft files
+    - Install the mod loader (if selected)
+    - Set up the profile folder structure
+    - Download required libraries and dependencies
+  </Step>
+  
+  <Step title="Customize (optional)">
+    After creation, you can:
+    - Add an icon
+    - Install mods
+    - Configure settings
+    - Import worlds
+  </Step>
+</Steps>
+
+<Tip>
+Give your profiles descriptive names like "Vanilla 1.20.4", "Sky Factory 4", or "Multiplayer Server" to easily identify them.
+</Tip>
+
+## Managing Profiles
+
+Organize and maintain your profile collection:
+
+### Profile Actions
+
+Right-click any profile to access management options:
+
+<CardGroup cols={2}>
+  <Card title="Edit" icon="pen">
+    Modify profile settings, name, icon, and configuration.
+  </Card>
+  
+  <Card title="Duplicate" icon="copy">
+    Create an exact copy of the profile with all mods and settings.
+  </Card>
+  
+  <Card title="Open Folder" icon="folder-open">
+    Access the profile's directory to add files or modify configs manually.
+  </Card>
+  
+  <Card title="Delete" icon="trash">
+    Permanently remove the profile and all its data.
+  </Card>
+  
+  <Card title="Export" icon="file-export">
+    Package the profile as a modpack (.mrpack file) for sharing.
+  </Card>
+  
+  <Card title="Repair" icon="wrench">
+    Reinstall Minecraft and mod loader to fix corrupted installations.
+  </Card>
+</CardGroup>
+
+### Profile Groups
+
+Organize profiles into groups:
+
+1. Right-click a profile
+2. Select **Add to Group**
+3. Create a new group or select an existing one
+4. Profiles can be in multiple groups
+
+Useful for organizing:
+- By Minecraft version (1.19, 1.20, etc.)
+- By purpose (Servers, Singleplayer, Testing)
+- By modpack type (Kitchen Sink, Tech, Magic)
+
+## Instance Isolation
+
+Each profile is completely isolated:
+
+### Separate Files
+
+```
+profiles/
+├── Vanilla 1.20/
+│   ├── mods/
+│   ├── saves/
+│   ├── resourcepacks/
+│   ├── shaderpacks/
+│   ├── config/
+│   └── options.txt
+├── Sky Factory 4/
+│   ├── mods/
+│   ├── saves/
+│   ├── resourcepacks/
+│   └── ...
+└── Multiplayer Server/
+    └── ...
+```
+
+### Benefits of Isolation
+
+- **No conflicts**: Incompatible mods can coexist in different profiles
+- **Easy testing**: Try new mods without affecting your main setup
+- **Multiple versions**: Run different Minecraft versions simultaneously
+- **Clean organization**: Keep modpacks, servers, and vanilla separate
+
+<Note>
+While profiles are isolated, they share some common files like Java installations and asset downloads to save disk space.
+</Note>
+
+## Minecraft Version Selection
+
+Choose any Minecraft version for each profile:
+
+### Available Versions
+
+- **Release**: Stable versions (1.20.4, 1.19.2, etc.)
+- **Snapshot**: Development versions (24w10a, etc.)
+- **Old Beta/Alpha**: Historical versions
+- **Old Release**: Versions before the new launcher
+
+### Version Compatibility
+
+Considerations when selecting a version:
+
+- **Mod availability**: Most mods target recent stable versions
+- **Performance**: Newer versions often have better optimization
+- **Features**: Each version introduces new gameplay elements
+- **Server compatibility**: Match your server's version
+
+<Warning>
+Changing a profile's Minecraft version after creation will require reinstalling the game files and may break installed mods. Consider creating a new profile instead.
+</Warning>
+
+## Mod Loader Selection
+
+Select the appropriate mod loader for your needs:
+
+<Tabs>
+  <Tab title="Fabric">
+    **Best for**: Modern, lightweight modding
+    
+    **Characteristics:**
+    - Fast and lightweight
+    - Quick updates to new Minecraft versions
+    - Large selection of performance and utility mods
+    - Clean API design
+    
+    **Popular mods:**
+    - Sodium, Lithium, Phosphor (performance)
+    - Iris Shaders
+    - Fabric API (required for most mods)
+    
+    **Use when:**
+    - You want better performance
+    - You need the latest Minecraft version quickly
+    - You prefer lightweight modpacks
+  </Tab>
+  
+  <Tab title="Forge">
+    **Best for**: Established modpacks and content mods
+    
+    **Characteristics:**
+    - Longest-standing mod loader
+    - Massive mod ecosystem
+    - Many large content mods
+    - Extensive APIs
+    
+    **Popular mods:**
+    - Create, Mekanism, Thermal Series
+    - Tinkers' Construct
+    - Applied Energistics
+    
+    **Use when:**
+    - Playing established modpacks
+    - You need specific Forge-only mods
+    - Maximum mod selection is priority
+  </Tab>
+  
+  <Tab title="Quilt">
+    **Best for**: Fabric alternative with enhanced features
+    
+    **Characteristics:**
+    - Fork of Fabric with additional features
+    - Mostly compatible with Fabric mods
+    - Enhanced modding APIs
+    - Community-driven development
+    
+    **Use when:**
+    - You want Fabric compatibility with extras
+    - You're developing mods
+    - You need specific Quilt features
+  </Tab>
+  
+  <Tab title="NeoForge">
+    **Best for**: Modern Forge experience
+    
+    **Characteristics:**
+    - Fork of Forge for Minecraft 1.20.1+
+    - Modernized codebase
+    - Active development
+    - Compatible with many Forge mods
+    
+    **Use when:**
+    - Playing on Minecraft 1.20.1+
+    - You want Forge-style modding with modern features
+    - Specific mods require NeoForge
+  </Tab>
+  
+  <Tab title="Vanilla">
+    **Best for**: Pure Minecraft experience
+    
+    **Characteristics:**
+    - No mod loader
+    - No mods (except data packs)
+    - Clean, unmodified game
+    
+    **Use when:**
+    - Playing vanilla Minecraft
+    - Joining vanilla servers
+    - Using only resource packs and data packs
+  </Tab>
+</Tabs>
+
+### Loader Version Selection
+
+When installing a mod loader, choose the version:
+
+- **Latest**: Most recent version (may have bugs)
+- **Stable**: Recommended version (tested and reliable)
+- **Specific**: Choose an exact version number
+
+<Tip>
+For most users, selecting **Stable** provides the best balance of features and reliability.
+</Tip>
+
+## Resource Packs and Shader Packs
+
+Customize your profile's appearance:
+
+### Adding Resource Packs
+
+<Steps>
+  <Step title="Obtain resource pack">
+    Download a resource pack (.zip file) from Modrinth, CurseForge, or other sources.
+  </Step>
+  
+  <Step title="Add to profile">
+    Either:
+    - Right-click profile → **Open Folder** → Navigate to `resourcepacks/` folder
+    - Or drag and drop the .zip file into the launcher
+  </Step>
+  
+  <Step title="Activate in-game">
+    1. Launch Minecraft
+    2. Go to **Options** → **Resource Packs**
+    3. Move your pack from "Available" to "Selected"
+    4. Click **Done**
+  </Step>
+</Steps>
+
+### Adding Shader Packs
+
+Shaders require a shader mod first:
+
+<Steps>
+  <Step title="Install shader mod">
+    Install either:
+    - **Iris Shaders** (for Fabric/Quilt)
+    - **OptiFine** (for Forge)
+    - Built-in for some modpacks
+  </Step>
+  
+  <Step title="Add shader pack">
+    Download a shader pack (.zip file) and place it in the `shaderpacks/` folder.
+  </Step>
+  
+  <Step title="Enable in-game">
+    1. Launch Minecraft
+    2. Go to **Options** → **Video Settings** → **Shader Packs**
+    3. Select your shader pack
+    4. Click **Done**
+  </Step>
+</Steps>
+
+<Warning>
+Shaders are performance-intensive. Ensure your system meets the requirements and consider allocating more memory for profiles using shaders.
+</Warning>
+
+## Profile Settings
+
+Customize each profile independently:
+
+### Basic Settings
+
+- **Name**: Identify your profile
+- **Icon**: Visual identifier (custom image or emoji)
+- **Game Version**: Minecraft version
+- **Loader**: Mod loader type and version
+
+### Java Settings
+
+- **Java Installation**: Auto-detect or custom path
+- **Memory Allocation**: RAM dedicated to this profile
+- **JVM Arguments**: Advanced Java configuration
+
+### Game Settings
+
+- **Resolution**: Default window size
+- **Fullscreen**: Force fullscreen mode
+- **Game Arguments**: Minecraft launch options
+
+### Advanced Settings
+
+- **Environment Variables**: Custom environment configuration
+- **Launch Hooks**: Pre-launch, wrapper, and post-exit scripts
+
+<Note>
+Settings can be configured globally (affecting all profiles) or per-profile (overriding global settings). Per-profile settings take precedence.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Name Clearly" icon="tag">
+    Use descriptive names that indicate:
+    - Minecraft version
+    - Purpose (modpack name, server, testing)
+    - Mod loader if relevant
+  </Card>
+  
+  <Card title="Organize with Groups" icon="folder-tree">
+    Group related profiles:
+    - By version (1.19 Profiles, 1.20 Profiles)
+    - By type (Servers, Modpacks, Vanilla)
+    - By status (Active, Archive, Testing)
+  </Card>
+  
+  <Card title="Regular Backups" icon="floppy-disk">
+    Export important profiles:
+    - Before major changes
+    - After significant progress
+    - When sharing with friends
+  </Card>
+  
+  <Card title="Clean Up Unused" icon="broom">
+    Periodically remove:
+    - Old test profiles
+    - Outdated modpack versions
+    - Duplicate instances
+  </Card>
+</CardGroup>

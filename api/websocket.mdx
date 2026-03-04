@@ -1,0 +1,664 @@
+---
+title: 'WebSocket API'
+description: 'Real-time communication with Modrinth Hosting servers via WebSocket'
+---
+
+## Overview
+
+The WebSocket API provides real-time bidirectional communication with Modrinth Hosting servers. It enables:
+
+- Real-time console log streaming
+- Server statistics monitoring (CPU, RAM, network)
+- Power state change notifications
+- Backup progress tracking
+- Mod installation status updates
+- Sending console commands
+
+WebSocket connections are automatically authenticated using JWT tokens and support auto-reconnection with exponential backoff.
+
+## Connection Flow
+
+The WebSocket client handles the complete authentication flow automatically:
+
+```
+1. client.archon.sockets.safeConnect(serverId)
+   ↓
+2. Fetches JWT token via archon.servers_v0.getWebSocketAuth(serverId)
+   ↓
+3. Opens WebSocket connection to wss://[url]
+   ↓
+4. Sends authentication message: { event: 'auth', jwt: token }
+   ↓
+5. Server responds with { event: 'auth-ok' }
+   ↓
+6. Connection ready - start receiving events
+```
+
+## Connecting to a Server
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({
+  token: 'your-auth-token'
+})
+
+// Connect to server WebSocket
+await client.archon.sockets.safeConnect(serverId)
+
+// Subscribe to events
+const unsub = client.archon.sockets.on(serverId, 'log', (event) => {
+  console.log(`[${event.stream}] ${event.message}`)
+})
+
+// Clean up when done
+unsub()
+client.archon.sockets.disconnect(serverId)
+```
+
+### Safe Connect Options
+
+```javascript
+// Connect only if not already connected
+await client.archon.sockets.safeConnect(serverId)
+
+// Force reconnect even if already connected
+await client.archon.sockets.safeConnect(serverId, { force: true })
+```
+
+## Event Types
+
+### Log Events
+
+Real-time console output from the server.
+
+```javascript
+client.archon.sockets.on(serverId, 'log', (event) => {
+  console.log(`[${event.stream}] ${event.message}`)
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"log"`
+</ResponseField>
+
+<ResponseField name="stream" type="string">
+  Output stream: `stdout` or `stderr`
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Log message content
+</ResponseField>
+
+### Stats Events
+
+Server resource usage statistics, sent periodically.
+
+```javascript
+client.archon.sockets.on(serverId, 'stats', (event) => {
+  const cpuPercent = event.cpu_percent
+  const ramUsedGB = event.ram_usage_bytes / (1024 ** 3)
+  const ramTotalGB = event.ram_total_bytes / (1024 ** 3)
+  
+  console.log(`CPU: ${cpuPercent.toFixed(1)}%`)
+  console.log(`RAM: ${ramUsedGB.toFixed(2)}GB / ${ramTotalGB.toFixed(2)}GB`)
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"stats"`
+</ResponseField>
+
+<ResponseField name="cpu_percent" type="number">
+  CPU usage percentage (0-100)
+</ResponseField>
+
+<ResponseField name="ram_usage_bytes" type="number">
+  Current RAM usage in bytes
+</ResponseField>
+
+<ResponseField name="ram_total_bytes" type="number">
+  Total RAM available in bytes
+</ResponseField>
+
+<ResponseField name="storage_usage_bytes" type="number">
+  Current storage usage in bytes
+</ResponseField>
+
+<ResponseField name="storage_total_bytes" type="number">
+  Total storage available in bytes
+</ResponseField>
+
+<ResponseField name="net_tx_bytes" type="number">
+  Network bytes transmitted
+</ResponseField>
+
+<ResponseField name="net_rx_bytes" type="number">
+  Network bytes received
+</ResponseField>
+
+### Power State Events
+
+Notifications when server power state changes.
+
+```javascript
+client.archon.sockets.on(serverId, 'power-state', (event) => {
+  console.log(`Server is now: ${event.state}`)
+  
+  if (event.state === 'crashed') {
+    if (event.oom_killed) {
+      console.error('Server crashed due to out of memory')
+    }
+    console.error(`Exit code: ${event.exit_code}`)
+  }
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"power-state"`
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Power state: `running`, `stopped`, `starting`, `stopping`, or `crashed`
+</ResponseField>
+
+<ResponseField name="oom_killed" type="boolean" optional>
+  Present when state is `crashed` - indicates if killed due to out of memory
+</ResponseField>
+
+<ResponseField name="exit_code" type="number" optional>
+  Present when state is `crashed` - process exit code
+</ResponseField>
+
+### Uptime Events
+
+Server uptime information.
+
+```javascript
+client.archon.sockets.on(serverId, 'uptime', (event) => {
+  const hours = Math.floor(event.uptime / 3600)
+  const minutes = Math.floor((event.uptime % 3600) / 60)
+  console.log(`Server uptime: ${hours}h ${minutes}m`)
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"uptime"`
+</ResponseField>
+
+<ResponseField name="uptime" type="number">
+  Server uptime in seconds
+</ResponseField>
+
+### Backup Progress Events
+
+Track backup creation, restoration, or file operations.
+
+```javascript
+client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+  const percent = (event.progress * 100).toFixed(1)
+  console.log(`${event.task}: ${percent}% (${event.state})`)
+  
+  if (event.state === 'done') {
+    console.log(`Backup ${event.id} completed`)
+  } else if (event.state === 'failed') {
+    console.error(`Backup ${event.id} failed`)
+  }
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"backup-progress"`
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Backup ID (UUID)
+</ResponseField>
+
+<ResponseField name="task" type="string">
+  Task type: `file`, `create`, or `restore`
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Task state: `ongoing`, `done`, `failed`, `cancelled`, or `unchanged`
+</ResponseField>
+
+<ResponseField name="progress" type="number">
+  Progress value from 0.0 to 1.0
+</ResponseField>
+
+### Installation Result Events
+
+Mod installation success or failure notifications.
+
+```javascript
+client.archon.sockets.on(serverId, 'installation-result', (event) => {
+  if (event.result === 'ok') {
+    console.log('Mod installed successfully')
+  } else {
+    console.error(`Installation failed: ${event.reason}`)
+  }
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"installation-result"`
+</ResponseField>
+
+<ResponseField name="result" type="string">
+  Installation result: `ok` or `err`
+</ResponseField>
+
+<ResponseField name="reason" type="string" optional>
+  Error message (only present when result is `err`)
+</ResponseField>
+
+### New Mod Events
+
+Notification when a new mod is detected on the server.
+
+```javascript
+client.archon.sockets.on(serverId, 'new-mod', (event) => {
+  console.log(`New mod detected: ${event.project_id}`)
+  console.log(`Version: ${event.version_id}`)
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"new-mod"`
+</ResponseField>
+
+<ResponseField name="project_id" type="string">
+  Modrinth project ID
+</ResponseField>
+
+<ResponseField name="version_id" type="string">
+  Modrinth version ID
+</ResponseField>
+
+### Filesystem Operation Events
+
+Track long-running filesystem operations (e.g., archive extraction).
+
+```javascript
+client.archon.sockets.on(serverId, 'filesystem-ops', (event) => {
+  event.all.forEach((op) => {
+    const percent = (op.progress * 100).toFixed(1)
+    console.log(`${op.op} (${op.id}): ${percent}%`)
+    console.log(`Files: ${op.files_processed}, Bytes: ${op.bytes_processed}`)
+    
+    if (op.current_file) {
+      console.log(`Current: ${op.current_file}`)
+    }
+    
+    if (op.state === 'failure-invalid-path') {
+      console.error(`Invalid path: ${op.invalid_path}`)
+    }
+  })
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"filesystem-ops"`
+</ResponseField>
+
+<ResponseField name="all" type="array">
+  Array of filesystem operations
+  <ResponseField name="op" type="string">
+    Operation type (currently only `unarchive`)
+  </ResponseField>
+  <ResponseField name="id" type="string">
+    Operation ID (UUID)
+  </ResponseField>
+  <ResponseField name="progress" type="number">
+    Progress from 0.0 to 1.0
+  </ResponseField>
+  <ResponseField name="bytes_processed" type="number">
+    Number of bytes processed
+  </ResponseField>
+  <ResponseField name="files_processed" type="number">
+    Number of files processed
+  </ResponseField>
+  <ResponseField name="state" type="string">
+    State: `queued`, `ongoing`, `done`, `cancelled`, `failure-corrupted`, or `failure-invalid-path`
+  </ResponseField>
+  <ResponseField name="mime" type="string">
+    MIME type of the archive
+  </ResponseField>
+  <ResponseField name="current_file" type="string" optional>
+    Currently processing file
+  </ResponseField>
+  <ResponseField name="invalid_path" type="string" optional>
+    Invalid path that caused failure
+  </ResponseField>
+  <ResponseField name="src" type="string">
+    Source file path
+  </ResponseField>
+  <ResponseField name="started" type="string">
+    ISO 8601 timestamp when operation started
+  </ResponseField>
+</ResponseField>
+
+### Authentication Events
+
+WebSocket authentication status notifications.
+
+```javascript
+// Authentication successful
+client.archon.sockets.on(serverId, 'auth-ok', (event) => {
+  console.log('WebSocket authenticated')
+})
+
+// Token expiring soon (handled automatically)
+client.archon.sockets.on(serverId, 'auth-expiring', (event) => {
+  console.log('Auth token expiring, refreshing...')
+})
+
+// Authentication failed
+client.archon.sockets.on(serverId, 'auth-incorrect', (event) => {
+  console.error('WebSocket authentication failed')
+})
+```
+
+<ResponseField name="event" type="string">
+  `auth-ok`, `auth-expiring`, or `auth-incorrect`
+</ResponseField>
+
+The client automatically handles `auth-expiring` events by fetching a new token and re-authenticating.
+
+## Sending Commands
+
+Send console commands to the server.
+
+```javascript
+// Send a single command
+client.archon.sockets.send(serverId, {
+  event: 'command',
+  cmd: '/say Hello from the API!'
+})
+
+// Stop the server via console
+client.archon.sockets.send(serverId, {
+  event: 'command',
+  cmd: '/stop'
+})
+
+// Give a player operator status
+client.archon.sockets.send(serverId, {
+  event: 'command',
+  cmd: '/op PlayerName'
+})
+```
+
+<ParamField path="serverId" type="string" required>
+  The server ID to send the command to
+</ParamField>
+
+<ParamField body="event" type="string" required>
+  Always `"command"`
+</ParamField>
+
+<ParamField body="cmd" type="string" required>
+  The console command to execute (include leading `/` for game commands)
+</ParamField>
+
+## Auto-Reconnection
+
+The WebSocket client automatically reconnects on unexpected disconnections using exponential backoff:
+
+- **Base delay**: 1 second
+- **Max delay**: 30 seconds
+- **Max attempts**: 10
+- **Backoff strategy**: Exponential with jitter
+
+```javascript
+// Check connection status
+const status = client.archon.sockets.getStatus(serverId)
+
+if (status) {
+  console.log('Connected:', status.connected)
+  console.log('Reconnecting:', status.reconnecting)
+  console.log('Reconnect attempts:', status.reconnectAttempts)
+}
+```
+
+### Manual Reconnection
+
+```javascript
+// Disconnect and reconnect
+client.archon.sockets.disconnect(serverId)
+await client.archon.sockets.safeConnect(serverId)
+
+// Force reconnect even if already connected
+await client.archon.sockets.safeConnect(serverId, { force: true })
+```
+
+## Complete Example: Server Console
+
+Here's a complete example building a server console interface:
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+class ServerConsole {
+  constructor(serverId, authToken) {
+    this.serverId = serverId
+    this.client = new GenericModrinthClient({ token: authToken })
+    this.logs = []
+    this.stats = null
+    this.powerState = 'unknown'
+  }
+
+  async connect() {
+    // Connect to WebSocket
+    await this.client.archon.sockets.safeConnect(this.serverId)
+
+    // Subscribe to logs
+    this.unsubscribers = [
+      this.client.archon.sockets.on(this.serverId, 'log', (event) => {
+        this.logs.push({ stream: event.stream, message: event.message })
+        this.onLog?.(event)
+      }),
+
+      // Subscribe to stats
+      this.client.archon.sockets.on(this.serverId, 'stats', (event) => {
+        this.stats = event
+        this.onStats?.(event)
+      }),
+
+      // Subscribe to power state
+      this.client.archon.sockets.on(this.serverId, 'power-state', (event) => {
+        this.powerState = event.state
+        this.onPowerState?.(event)
+      }),
+
+      // Subscribe to backup progress
+      this.client.archon.sockets.on(this.serverId, 'backup-progress', (event) => {
+        this.onBackupProgress?.(event)
+      }),
+
+      // Subscribe to installation results
+      this.client.archon.sockets.on(this.serverId, 'installation-result', (event) => {
+        this.onInstallationResult?.(event)
+      })
+    ]
+
+    console.log('Connected to server console')
+  }
+
+  sendCommand(cmd) {
+    this.client.archon.sockets.send(this.serverId, {
+      event: 'command',
+      cmd
+    })
+  }
+
+  async startServer() {
+    await this.client.archon.servers_v0.power(this.serverId, 'Start')
+  }
+
+  async stopServer() {
+    await this.client.archon.servers_v0.power(this.serverId, 'Stop')
+  }
+
+  async restartServer() {
+    await this.client.archon.servers_v0.power(this.serverId, 'Restart')
+  }
+
+  disconnect() {
+    // Unsubscribe from all events
+    this.unsubscribers?.forEach((unsub) => unsub())
+    
+    // Disconnect WebSocket
+    this.client.archon.sockets.disconnect(this.serverId)
+    
+    console.log('Disconnected from server console')
+  }
+}
+
+// Usage
+const console = new ServerConsole('server-id', 'auth-token')
+
+// Set up event handlers
+console.onLog = (event) => {
+  console.log(`[${event.stream}] ${event.message}`)
+}
+
+console.onStats = (event) => {
+  const cpuPercent = event.cpu_percent.toFixed(1)
+  const ramGB = (event.ram_usage_bytes / (1024 ** 3)).toFixed(2)
+  console.log(`CPU: ${cpuPercent}% | RAM: ${ramGB}GB`)
+}
+
+console.onPowerState = (event) => {
+  console.log(`Power state changed: ${event.state}`)
+}
+
+// Connect and use
+await console.connect()
+
+// Send commands
+console.sendCommand('/list')
+console.sendCommand('/say Server managed via API')
+
+// Control power
+await console.startServer()
+
+// Clean up when done
+process.on('SIGINT', () => {
+  console.disconnect()
+  process.exit()
+})
+```
+
+## Example: Real-time Server Dashboard
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({ token: 'auth-token' })
+const serverId = 'server-id'
+
+// Connect to server
+await client.archon.sockets.safeConnect(serverId)
+
+// Build real-time dashboard
+const dashboard = {
+  powerState: 'unknown',
+  cpuUsage: 0,
+  ramUsage: 0,
+  ramTotal: 0,
+  uptime: 0,
+  recentLogs: [],
+  activeBackups: new Map()
+}
+
+// Update power state
+client.archon.sockets.on(serverId, 'power-state', (event) => {
+  dashboard.powerState = event.state
+  updateUI()
+})
+
+// Update stats every few seconds
+client.archon.sockets.on(serverId, 'stats', (event) => {
+  dashboard.cpuUsage = event.cpu_percent
+  dashboard.ramUsage = event.ram_usage_bytes
+  dashboard.ramTotal = event.ram_total_bytes
+  updateUI()
+})
+
+// Update uptime
+client.archon.sockets.on(serverId, 'uptime', (event) => {
+  dashboard.uptime = event.uptime
+  updateUI()
+})
+
+// Track recent logs
+client.archon.sockets.on(serverId, 'log', (event) => {
+  dashboard.recentLogs.push(event)
+  if (dashboard.recentLogs.length > 100) {
+    dashboard.recentLogs.shift() // Keep only last 100 logs
+  }
+  updateUI()
+})
+
+// Track backup progress
+client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+  dashboard.activeBackups.set(event.id, {
+    task: event.task,
+    progress: event.progress,
+    state: event.state
+  })
+  
+  if (event.state === 'done' || event.state === 'failed') {
+    setTimeout(() => {
+      dashboard.activeBackups.delete(event.id)
+      updateUI()
+    }, 3000) // Remove after 3 seconds
+  }
+  
+  updateUI()
+})
+
+function updateUI() {
+  console.clear()
+  console.log('=== Server Dashboard ===')
+  console.log(`Power State: ${dashboard.powerState}`)
+  console.log(`CPU: ${dashboard.cpuUsage.toFixed(1)}%`)
+  console.log(`RAM: ${(dashboard.ramUsage / 1024**3).toFixed(2)}GB / ${(dashboard.ramTotal / 1024**3).toFixed(2)}GB`)
+  console.log(`Uptime: ${Math.floor(dashboard.uptime / 3600)}h ${Math.floor((dashboard.uptime % 3600) / 60)}m`)
+  
+  if (dashboard.activeBackups.size > 0) {
+    console.log('\nActive Backups:')
+    dashboard.activeBackups.forEach((backup, id) => {
+      const percent = (backup.progress * 100).toFixed(1)
+      console.log(`  ${backup.task}: ${percent}% (${backup.state})`)
+    })
+  }
+  
+  console.log('\nRecent Logs:')
+  dashboard.recentLogs.slice(-10).forEach((log) => {
+    console.log(`  [${log.stream}] ${log.message}`)
+  })
+}
+```
+
+## Platform Support
+
+WebSocket functionality is only available in the `GenericModrinthClient`, which uses the browser's native `WebSocket` API. It is not available in:
+
+- `NuxtModrinthClient` (SSR context)
+- `TauriModrinthClient` (use Tauri's WebSocket plugin instead)
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+// WebSocket support available
+const client = new GenericModrinthClient({ token: 'auth-token' })
+client.archon.sockets // WebSocketClient instance
+```
+
+## Related Documentation
+
+- [Server Management API](/api/servers) - Server control and configuration
+- [Backups API](/api/backups) - Monitor backup progress via WebSocket events

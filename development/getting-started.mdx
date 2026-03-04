@@ -1,0 +1,351 @@
+---
+title: Getting Started
+description: Set up your development environment for Modrinth
+---
+
+## Prerequisites
+
+Before you begin developing for Modrinth, ensure you have the following tools installed:
+
+### Required Tools
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js">
+    **Version**: 20.x or higher
+    
+    [Download Node.js](https://nodejs.org/)
+    
+    Verify installation:
+    ```bash
+    node --version
+    ```
+  </Card>
+  
+  <Card title="pnpm" icon="box">
+    **Version**: 9.15.0
+    
+    Install globally:
+    ```bash
+    npm install -g pnpm@9.15.0
+    ```
+    
+    Verify installation:
+    ```bash
+    pnpm --version
+    ```
+  </Card>
+  
+  <Card title="Rust" icon="rust">
+    **Version**: 1.90.0 or higher (Edition 2024)
+    
+    [Install Rust](https://www.rust-lang.org/tools/install)
+    
+    Verify installation:
+    ```bash
+    rustc --version
+    cargo --version
+    ```
+  </Card>
+  
+  <Card title="Docker" icon="docker">
+    **For local services** (PostgreSQL, Redis, ClickHouse, etc.)
+    
+    [Download Docker](https://www.docker.com/get-started)
+    
+    Verify installation:
+    ```bash
+    docker --version
+    docker compose version
+    ```
+  </Card>
+</CardGroup>
+
+### Optional Tools
+
+<AccordionGroup>
+  <Accordion title="Tauri Prerequisites (for Desktop App)">
+    If you plan to work on the desktop app, follow the [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/) for your platform:
+    
+    **macOS**: Xcode Command Line Tools
+    ```bash
+    xcode-select --install
+    ```
+    
+    **Linux**: Additional system dependencies
+    ```bash
+    sudo apt install libwebkit2gtk-4.1-dev \
+      build-essential curl wget file libssl-dev \
+      libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+    ```
+    
+    **Windows**: Microsoft Visual Studio C++ Build Tools
+  </Accordion>
+  
+  <Accordion title="Development Tools">
+    Recommended IDE extensions:
+    
+    - **VS Code**: Rust Analyzer, Vue Language Features (Volar), ESLint, Prettier
+    - **IntelliJ IDEA**: Rust plugin, Vue.js plugin
+    - **Rust Tools**: rustfmt, clippy (installed with Rust)
+  </Accordion>
+</AccordionGroup>
+
+## Cloning the Repository
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Modrinth monorepo to your local machine:
+    
+    ```bash
+    git clone https://github.com/modrinth/code.git
+    cd code
+    ```
+    
+    Or if you've forked it:
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/code.git
+    cd code
+    ```
+  </Step>
+  
+  <Step title="Check Node Version">
+    The repository includes a `.nvmrc` file. If you use nvm:
+    
+    ```bash
+    nvm use
+    ```
+    
+    This will automatically use Node.js version specified in `.nvmrc`.
+  </Step>
+</Steps>
+
+## Installing Dependencies
+
+<Steps>
+  <Step title="Install JavaScript Dependencies">
+    Install all frontend dependencies using pnpm:
+    
+    ```bash
+    pnpm install
+    ```
+    
+    This will install dependencies for all packages in the monorepo workspace.
+  </Step>
+  
+  <Step title="Install Rust Dependencies">
+    Rust dependencies are managed by Cargo and will be downloaded automatically when you build.
+    
+    Verify Rust toolchain:
+    ```bash
+    rustc --version
+    # Should show 1.90.0 or higher
+    ```
+  </Step>
+</Steps>
+
+## Running Development Servers
+
+### Web Interface (Frontend)
+
+<Steps>
+  <Step title="Copy Environment File">
+    Navigate to the frontend directory and copy the environment template:
+    
+    ```bash
+    cd apps/frontend
+    cp .env.local .env
+    ```
+    
+    The `.env.local` file contains default development settings.
+  </Step>
+  
+  <Step title="Start Development Server">
+    From the **root directory**, run:
+    
+    ```bash
+    pnpm web:dev
+    ```
+    
+    The web interface will be available at `http://localhost:3000`
+  </Step>
+</Steps>
+
+### Desktop App
+
+<Steps>
+  <Step title="Copy Environment File">
+    Navigate to the app-lib directory and copy the environment template:
+    
+    ```bash
+    cd packages/app-lib
+    cp .env.local .env
+    ```
+  </Step>
+  
+  <Step title="Start Development Server">
+    From the **root directory**, run:
+    
+    ```bash
+    pnpm app:dev
+    ```
+    
+    This will compile the Rust backend (Theseus) and launch the Tauri app with hot-reloading for the Vue frontend.
+  </Step>
+</Steps>
+
+<Note>
+The first build of the desktop app may take several minutes as Cargo compiles all dependencies.
+</Note>
+
+### Backend API (Labrinth)
+
+See the [Local Setup](/development/local-setup) guide for detailed instructions on running Labrinth with all required services.
+
+### UI Component Library (Storybook)
+
+```bash
+pnpm storybook
+```
+
+Storybook will be available at `http://localhost:6006` for developing and testing UI components.
+
+## Verify Your Setup
+
+Run these commands to verify everything is working:
+
+```bash
+# Check that all packages build
+pnpm build
+
+# Run linters
+pnpm lint
+
+# Run tests
+pnpm test
+```
+
+<Warning>
+If you encounter any errors, check that:
+- All prerequisites are installed
+- You're using the correct Node.js version
+- You ran `pnpm install` from the root directory
+- Docker is running (if testing Labrinth)
+</Warning>
+
+## Making Your First Contribution
+
+Now that your environment is set up:
+
+<Steps>
+  <Step title="Find an Issue">
+    Browse the [issue tracker](https://github.com/modrinth/code/issues) for issues labeled `good first issue` or `help wanted`.
+  </Step>
+  
+  <Step title="Create a Branch">
+    Create a new branch for your work:
+    
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+  </Step>
+  
+  <Step title="Make Changes">
+    Edit the code, following our [Code Style](/development/code-style) guidelines.
+  </Step>
+  
+  <Step title="Test Locally">
+    Test your changes in the development server:
+    
+    ```bash
+    # For web changes
+    pnpm web:dev
+    
+    # For app changes
+    pnpm app:dev
+    ```
+  </Step>
+  
+  <Step title="Run Pre-PR Checks">
+    Before submitting a PR:
+    
+    **For Frontend:**
+    ```bash
+    pnpm prepr
+    ```
+    
+    **For Labrinth:**
+    ```bash
+    cd apps/labrinth
+    cargo clippy -p labrinth --all-targets
+    cargo sqlx prepare
+    ```
+  </Step>
+  
+  <Step title="Commit and Push">
+    Commit your changes with a clear message:
+    
+    ```bash
+    git add .
+    git commit -m "feat: add description of your changes"
+    git push origin feature/your-feature-name
+    ```
+  </Step>
+  
+  <Step title="Create Pull Request">
+    Go to GitHub and create a pull request from your branch.
+  </Step>
+</Steps>
+
+## Development Commands Reference
+
+```bash
+# Frontend development
+pnpm web:dev              # Run web interface
+pnpm app:dev              # Run desktop app
+pnpm storybook            # Run component library
+
+# Build commands
+pnpm web:build            # Build web interface
+pnpm app:build            # Build desktop app
+pnpm build                # Build all packages
+
+# Code quality
+pnpm lint                 # Run linters
+pnpm fix                  # Auto-fix linting issues
+pnpm test                 # Run all tests
+
+# Pre-PR checks
+pnpm prepr                # All frontend checks
+pnpm prepr:frontend:web   # Web only
+pnpm prepr:frontend:app   # App only
+pnpm prepr:frontend:lib   # Shared libraries only
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Code Style" icon="code" href="/development/code-style">
+    Learn about formatting, naming conventions, and commit messages
+  </Card>
+  
+  <Card title="Architecture" icon="sitemap" href="/development/architecture-overview">
+    Understand the monorepo structure and technology stack
+  </Card>
+  
+  <Card title="Local Setup" icon="server" href="/development/local-setup">
+    Set up Labrinth backend with Docker services
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Read the full contribution guidelines
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you run into issues:
+
+- Check the README files in specific app/package directories
+- Join the [Discord server](https://discord.modrinth.com) and ask in `#development`
+- Open an issue on GitHub
+- Review the CLAUDE.md files for project-specific instructions

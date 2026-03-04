@@ -1,0 +1,686 @@
+---
+title: 'Backup Management'
+description: 'API endpoints for creating, restoring, and managing server backups'
+---
+
+## Overview
+
+The Backup API allows you to manage server backups, including creation, restoration, deletion, and monitoring progress. Backups are organized by world, with automatic and manual backup support.
+
+## API Versions
+
+The Backup API has two versions:
+
+- **v0** - Legacy API using server-level backup paths
+- **v1** - Current API with world-based backup organization
+
+This documentation covers both versions, with v1 being the recommended version for new integrations.
+
+## Authentication
+
+All backup API requests require authentication via JWT token:
+
+```javascript
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+## Endpoints
+
+### List Backups
+
+Retrieve all backups for a server (or specific world in v1).
+
+<CodeGroup>
+```javascript v1 (Recommended)
+const backups = await client.archon.backups_v1.list(serverId)
+
+// List backups for specific world
+const backups = await client.archon.backups_v1.list(serverId, worldId)
+```
+
+```javascript v0 (Legacy)
+const backups = await client.archon.backups_v0.list(serverId)
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000` (first/active world)
+</ParamField>
+
+<ResponseField name="id" type="string">
+  Unique backup identifier (UUID)
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Backup display name
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp when backup was created
+</ResponseField>
+
+<ResponseField name="automated" type="boolean">
+  Whether this backup was created automatically
+</ResponseField>
+
+<ResponseField name="interrupted" type="boolean">
+  Whether the backup was interrupted
+</ResponseField>
+
+<ResponseField name="ongoing" type="boolean">
+  Whether the backup is currently in progress
+</ResponseField>
+
+<ResponseField name="task" type="object" optional>
+  Active backup tasks with progress information
+  <ResponseField name="file" type="object" optional>
+    File transfer task
+    <ResponseField name="progress" type="number">
+      Progress from 0.0 to 1.0
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      State: `ongoing`, `done`, `failed`, `cancelled`, or `unchanged`
+    </ResponseField>
+  </ResponseField>
+  <ResponseField name="create" type="object" optional>
+    Backup creation task
+    <ResponseField name="progress" type="number">
+      Progress from 0.0 to 1.0
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      State: `ongoing`, `done`, `failed`, `cancelled`, or `unchanged`
+    </ResponseField>
+  </ResponseField>
+  <ResponseField name="restore" type="object" optional>
+    Restore task
+    <ResponseField name="progress" type="number">
+      Progress from 0.0 to 1.0
+    </ResponseField>
+    <ResponseField name="state" type="string">
+      State: `ongoing`, `done`, `failed`, `cancelled`, or `unchanged`
+    </ResponseField>
+  </ResponseField>
+</ResponseField>
+
+### Get Backup
+
+Retrieve details about a specific backup.
+
+<CodeGroup>
+```javascript v1 (Recommended)
+const backup = await client.archon.backups_v1.get(serverId, backupId)
+
+// Get backup from specific world
+const backup = await client.archon.backups_v1.get(serverId, backupId, worldId)
+```
+
+```javascript v0 (Legacy)
+const backup = await client.archon.backups_v0.get(serverId, backupId)
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField path="backupId" type="string" required>
+  The unique identifier of the backup
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000`
+</ParamField>
+
+Returns the same fields as List Backups.
+
+### Create Backup
+
+Create a new manual backup of the server.
+
+<CodeGroup>
+```javascript v1 (Recommended)
+const { id } = await client.archon.backups_v1.create(serverId, {
+  name: 'Before modpack update'
+})
+
+console.log(`Backup created with ID: ${id}`)
+
+// Create backup for specific world
+const { id } = await client.archon.backups_v1.create(
+  serverId,
+  { name: 'World backup' },
+  worldId
+)
+```
+
+```javascript v0 (Legacy)
+const { id } = await client.archon.backups_v0.create(serverId, {
+  name: 'Before modpack update'
+})
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Display name for the backup
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000`
+</ParamField>
+
+<ResponseField name="id" type="string">
+  The ID of the newly created backup
+</ResponseField>
+
+Backup creation is asynchronous. Monitor progress via WebSocket events:
+
+```javascript
+// Create backup
+const { id } = await client.archon.backups_v1.create(serverId, {
+  name: 'My Backup'
+})
+
+// Monitor progress via WebSocket
+await client.archon.sockets.safeConnect(serverId)
+
+const unsub = client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+  if (event.id === id) {
+    const percent = (event.progress * 100).toFixed(1)
+    console.log(`${event.task}: ${percent}% (${event.state})`)
+    
+    if (event.state === 'done') {
+      console.log('Backup completed successfully')
+      unsub()
+    } else if (event.state === 'failed') {
+      console.error('Backup failed')
+      unsub()
+    }
+  }
+})
+```
+
+### Restore Backup
+
+Restore a server from a backup.
+
+<CodeGroup>
+```javascript v1 (Recommended)
+await client.archon.backups_v1.restore(serverId, backupId)
+
+// Restore backup from specific world
+await client.archon.backups_v1.restore(serverId, backupId, worldId)
+```
+
+```javascript v0 (Legacy)
+await client.archon.backups_v0.restore(serverId, backupId)
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField path="backupId" type="string" required>
+  The unique identifier of the backup to restore
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000`
+</ParamField>
+
+Restoration is asynchronous. Monitor progress via WebSocket:
+
+```javascript
+await client.archon.backups_v1.restore(serverId, backupId)
+
+// Monitor restore progress
+const unsub = client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+  if (event.id === backupId && event.task === 'restore') {
+    const percent = (event.progress * 100).toFixed(1)
+    console.log(`Restoring: ${percent}%`)
+    
+    if (event.state === 'done') {
+      console.log('Restore completed')
+      unsub()
+    }
+  }
+})
+```
+
+### Delete Backup
+
+Permanently delete a backup.
+
+<CodeGroup>
+```javascript v1 (Recommended)
+await client.archon.backups_v1.delete(serverId, backupId)
+
+// Delete backup from specific world
+await client.archon.backups_v1.delete(serverId, backupId, worldId)
+```
+
+```javascript v0 (Legacy)
+await client.archon.backups_v0.delete(serverId, backupId)
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField path="backupId" type="string" required>
+  The unique identifier of the backup to delete
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000`
+</ParamField>
+
+### Rename Backup
+
+Update a backup's display name.
+
+<CodeGroup>
+```javascript v1 (Recommended)
+await client.archon.backups_v1.rename(serverId, backupId, {
+  name: 'New backup name'
+})
+
+// Rename backup in specific world
+await client.archon.backups_v1.rename(
+  serverId,
+  backupId,
+  { name: 'New name' },
+  worldId
+)
+```
+
+```javascript v0 (Legacy)
+await client.archon.backups_v0.rename(serverId, backupId, {
+  name: 'New backup name'
+})
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField path="backupId" type="string" required>
+  The unique identifier of the backup
+</ParamField>
+
+<ParamField body="name" type="string" optional>
+  New display name for the backup
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000`
+</ParamField>
+
+### Retry Failed Backup
+
+Retry a failed backup operation.
+
+<CodeGroup>
+```javascript v1 (Recommended)
+await client.archon.backups_v1.retry(serverId, backupId)
+
+// Retry backup in specific world
+await client.archon.backups_v1.retry(serverId, backupId, worldId)
+```
+
+```javascript v0 (Legacy)
+await client.archon.backups_v0.retry(serverId, backupId)
+```
+</CodeGroup>
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField path="backupId" type="string" required>
+  The unique identifier of the failed backup
+</ParamField>
+
+<ParamField path="worldId" type="string" optional>
+  The world ID (v1 only). Defaults to `00000000-0000-0000-0000-000000000000`
+</ParamField>
+
+## WebSocket Progress Events
+
+Backup operations (create, restore) are asynchronous and emit real-time progress updates via WebSocket.
+
+### Backup Progress Event
+
+```javascript
+client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+  console.log('Backup ID:', event.id)
+  console.log('Task:', event.task) // 'file', 'create', or 'restore'
+  console.log('Progress:', (event.progress * 100).toFixed(1) + '%')
+  console.log('State:', event.state)
+})
+```
+
+<ResponseField name="event" type="string">
+  Always `"backup-progress"`
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Backup ID (UUID)
+</ResponseField>
+
+<ResponseField name="task" type="string">
+  Task type: `file` (transfer), `create` (compression), or `restore` (extraction)
+</ResponseField>
+
+<ResponseField name="state" type="string">
+  Current state: `ongoing`, `done`, `failed`, `cancelled`, or `unchanged`
+</ResponseField>
+
+<ResponseField name="progress" type="number">
+  Progress value from 0.0 (0%) to 1.0 (100%)
+</ResponseField>
+
+## Complete Examples
+
+### Example: Create and Monitor Backup
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({ token: 'auth-token' })
+const serverId = 'server-id'
+
+async function createBackupWithProgress(name) {
+  // Connect to WebSocket for progress updates
+  await client.archon.sockets.safeConnect(serverId)
+
+  return new Promise(async (resolve, reject) => {
+    // Create the backup
+    const { id } = await client.archon.backups_v1.create(serverId, { name })
+    console.log(`Creating backup: ${id}`)
+
+    // Track progress
+    const phases = new Map()
+
+    const unsub = client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+      if (event.id !== id) return
+
+      phases.set(event.task, {
+        progress: event.progress,
+        state: event.state
+      })
+
+      // Display progress
+      console.log(`${event.task}: ${(event.progress * 100).toFixed(1)}% (${event.state})`)
+
+      // Check if all phases are complete
+      const allDone = Array.from(phases.values()).every(
+        (phase) => phase.state === 'done'
+      )
+      const anyFailed = Array.from(phases.values()).some(
+        (phase) => phase.state === 'failed'
+      )
+
+      if (anyFailed) {
+        unsub()
+        reject(new Error('Backup failed'))
+      } else if (allDone && phases.size >= 2) {
+        // Backup complete (usually file + create tasks)
+        unsub()
+        resolve(id)
+      }
+    })
+  })
+}
+
+// Usage
+try {
+  const backupId = await createBackupWithProgress('Pre-update backup')
+  console.log(`Backup completed: ${backupId}`)
+} catch (error) {
+  console.error('Backup failed:', error)
+}
+```
+
+### Example: Restore with Confirmation
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({ token: 'auth-token' })
+const serverId = 'server-id'
+
+async function restoreBackupSafely(backupId) {
+  // Get backup details
+  const backup = await client.archon.backups_v1.get(serverId, backupId)
+  console.log(`Restoring backup: ${backup.name}`)
+  console.log(`Created: ${new Date(backup.created_at).toLocaleString()}`)
+  console.log('This will overwrite current server data!')
+
+  // In a real app, ask for user confirmation here
+  const confirmed = true // Replace with actual confirmation
+
+  if (!confirmed) {
+    console.log('Restore cancelled')
+    return
+  }
+
+  // Stop server before restore (recommended)
+  await client.archon.servers_v0.power(serverId, 'Stop')
+  console.log('Server stopped, waiting for shutdown...')
+
+  // Wait for server to stop
+  await new Promise((resolve) => {
+    const unsub = client.archon.sockets.on(serverId, 'power-state', (event) => {
+      if (event.state === 'stopped') {
+        unsub()
+        resolve()
+      }
+    })
+  })
+
+  // Start restore
+  await client.archon.backups_v1.restore(serverId, backupId)
+  console.log('Restore started')
+
+  // Monitor restore progress
+  await new Promise((resolve, reject) => {
+    const unsub = client.archon.sockets.on(serverId, 'backup-progress', (event) => {
+      if (event.id === backupId && event.task === 'restore') {
+        const percent = (event.progress * 100).toFixed(1)
+        console.log(`Restoring: ${percent}%`)
+
+        if (event.state === 'done') {
+          unsub()
+          resolve()
+        } else if (event.state === 'failed') {
+          unsub()
+          reject(new Error('Restore failed'))
+        }
+      }
+    })
+  })
+
+  console.log('Restore completed')
+
+  // Restart server
+  await client.archon.servers_v0.power(serverId, 'Start')
+  console.log('Server restarting')
+}
+
+// Usage
+try {
+  await restoreBackupSafely('backup-id')
+  console.log('Server restored successfully')
+} catch (error) {
+  console.error('Restore failed:', error)
+}
+```
+
+### Example: Backup Management UI
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+class BackupManager {
+  constructor(serverId, authToken) {
+    this.serverId = serverId
+    this.client = new GenericModrinthClient({ token: authToken })
+    this.backups = []
+    this.activeOperations = new Map()
+  }
+
+  async initialize() {
+    // Load existing backups
+    await this.refreshBackups()
+
+    // Connect to WebSocket for real-time updates
+    await this.client.archon.sockets.safeConnect(this.serverId)
+
+    // Monitor backup progress
+    this.client.archon.sockets.on(this.serverId, 'backup-progress', (event) => {
+      this.activeOperations.set(event.id, {
+        task: event.task,
+        progress: event.progress,
+        state: event.state
+      })
+
+      if (event.state === 'done' || event.state === 'failed') {
+        setTimeout(() => {
+          this.activeOperations.delete(event.id)
+          this.refreshBackups() // Refresh list
+        }, 2000)
+      }
+
+      this.onUpdate?.()
+    })
+  }
+
+  async refreshBackups() {
+    this.backups = await this.client.archon.backups_v1.list(this.serverId)
+    this.backups.sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    )
+    this.onUpdate?.()
+  }
+
+  async createBackup(name) {
+    const { id } = await this.client.archon.backups_v1.create(this.serverId, { name })
+    return id
+  }
+
+  async deleteBackup(backupId) {
+    await this.client.archon.backups_v1.delete(this.serverId, backupId)
+    await this.refreshBackups()
+  }
+
+  async renameBackup(backupId, newName) {
+    await this.client.archon.backups_v1.rename(this.serverId, backupId, { name: newName })
+    await this.refreshBackups()
+  }
+
+  async restoreBackup(backupId) {
+    await this.client.archon.backups_v1.restore(this.serverId, backupId)
+  }
+
+  getBackupProgress(backupId) {
+    return this.activeOperations.get(backupId)
+  }
+
+  disconnect() {
+    this.client.archon.sockets.disconnect(this.serverId)
+  }
+}
+
+// Usage
+const manager = new BackupManager('server-id', 'auth-token')
+
+// Set up UI update callback
+manager.onUpdate = () => {
+  console.clear()
+  console.log('=== Server Backups ===')
+  
+  manager.backups.forEach((backup) => {
+    const progress = manager.getBackupProgress(backup.id)
+    const date = new Date(backup.created_at).toLocaleString()
+    
+    console.log(`\n${backup.name} (${backup.id})`)
+    console.log(`  Created: ${date}`)
+    console.log(`  Automated: ${backup.automated ? 'Yes' : 'No'}`)
+    
+    if (progress) {
+      const percent = (progress.progress * 100).toFixed(1)
+      console.log(`  ${progress.task}: ${percent}% (${progress.state})`)
+    } else if (backup.ongoing) {
+      console.log(`  Status: In progress...`)
+    }
+  })
+  
+  if (manager.activeOperations.size > 0) {
+    console.log('\nActive Operations:')
+    manager.activeOperations.forEach((op, id) => {
+      const percent = (op.progress * 100).toFixed(1)
+      console.log(`  ${id}: ${op.task} ${percent}%`)
+    })
+  }
+}
+
+await manager.initialize()
+
+// Create a new backup
+const backupId = await manager.createBackup('Manual backup')
+console.log(`Creating backup: ${backupId}`)
+```
+
+## Backup Quotas
+
+Each server has a backup quota that limits the number of backups you can store:
+
+```javascript
+const server = await client.archon.servers_v0.get(serverId)
+
+console.log(`Backup quota: ${server.used_backup_quota} / ${server.backup_quota}`)
+
+if (server.used_backup_quota >= server.backup_quota) {
+  console.log('Backup quota full! Delete old backups to create new ones.')
+  
+  // Get oldest backup
+  const backups = await client.archon.backups_v1.list(serverId)
+  const oldest = backups.sort((a, b) => 
+    new Date(a.created_at) - new Date(b.created_at)
+  )[0]
+  
+  // Delete oldest backup
+  await client.archon.backups_v1.delete(serverId, oldest.id)
+  console.log(`Deleted oldest backup: ${oldest.name}`)
+}
+```
+
+## Best Practices
+
+1. **Stop Server Before Restore**: Always stop the server before restoring a backup to prevent data corruption
+
+2. **Monitor Progress**: Use WebSocket events to track backup/restore progress and handle failures gracefully
+
+3. **Descriptive Names**: Use clear, descriptive backup names that include context (e.g., "Before 1.20 update")
+
+4. **Quota Management**: Monitor backup quota usage and implement automatic cleanup of old backups
+
+5. **Confirmation**: Always confirm with users before restoring backups, as this overwrites current data
+
+6. **Error Handling**: Implement proper error handling for failed backups and retry mechanisms
+
+## Related Documentation
+
+- [Server Management API](/api/servers) - Get server details and manage power state
+- [WebSocket API](/api/websocket) - Real-time backup progress events

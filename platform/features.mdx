@@ -1,0 +1,562 @@
+---
+title: Platform Features
+description: Comprehensive overview of Modrinth's features for players, creators, and server hosts
+---
+
+Modrinth is an open-source platform built for the Minecraft community. Whether you're a player looking for mods, a creator sharing content, or hosting servers, Modrinth provides powerful tools for everyone.
+
+## Search and Discovery
+
+### Lightning-Fast Search
+
+Modrinth's search engine is designed for speed and precision:
+
+<CardGroup cols={2}>
+  <Card title="Real-Time Results" icon="bolt">
+    - Instant search results as you type
+    - Sub-100ms response times
+    - Fuzzy matching for typos
+    - Relevance-based ranking
+  </Card>
+  
+  <Card title="Advanced Filtering" icon="filter">
+    - Game version compatibility
+    - Mod loader support (Fabric, Forge, Quilt, NeoForge)
+    - Categories and tags
+    - Client/server side filtering
+    - Open source projects filter
+  </Card>
+</CardGroup>
+
+### Sorting Options
+
+Find projects sorted by:
+- **Relevance** - Best matches for your search
+- **Downloads** - Most popular projects
+- **Follows** - Most followed by community
+- **Updated** - Recently updated projects
+- **Newest** - Latest additions to Modrinth
+
+### Category System
+
+Browse projects by category:
+- **Technology** - Tech mods and automation
+- **Adventure** - Exploration and questing
+- **Magic** - Spells and enchantments
+- **Decoration** - Building and aesthetics
+- **Library** - APIs and frameworks
+- **Optimization** - Performance improvements
+- **Utility** - Tools and helpers
+- **And many more...**
+
+### Project Types
+
+<Tabs>
+  <Tab title="Mods">
+    Gameplay modifications that add features, mechanics, or content:
+    - Client-side mods (visual enhancements, UI improvements)
+    - Server-side mods (gameplay mechanics, admin tools)
+    - Universal mods (work on both client and server)
+    
+    **Supported Loaders**: Fabric, Forge, Quilt, NeoForge
+  </Tab>
+  
+  <Tab title="Plugins">
+    Server-side modifications for plugin-based servers:
+    - Bukkit plugins
+    - Spigot plugins
+    - Paper plugins
+    - Sponge plugins
+    
+    **Use Cases**: Server administration, minigames, economy systems, protection
+  </Tab>
+  
+  <Tab title="Resource Packs">
+    Visual and audio customizations:
+    - Texture replacements
+    - Custom models
+    - Sound packs
+    - Font changes
+    - GUI modifications
+  </Tab>
+  
+  <Tab title="Shaders">
+    Graphics enhancements:
+    - Lighting improvements
+    - Shadows and reflections
+    - Water effects
+    - Sky rendering
+    - Performance-optimized options
+    
+    **Shader Loaders**: Iris, OptiFine, Canvas
+  </Tab>
+  
+  <Tab title="Modpacks">
+    Curated collections of mods:
+    - Themed gameplay experiences
+    - Pre-configured settings
+    - Quest integration
+    - Performance optimization
+    - Server-ready configurations
+  </Tab>
+  
+  <Tab title="Data Packs">
+    Vanilla-compatible modifications:
+    - Custom recipes
+    - Loot tables
+    - Advancements
+    - World generation
+    - Function commands
+  </Tab>
+</Tabs>
+
+### Discovery Features
+
+**Homepage Showcase**
+- Featured projects carousel
+- Trending projects this week
+- New and updated projects
+- Random project discovery
+
+**Collections**
+- User-curated project lists
+- Themed collections
+- Modpack recommendations
+- Creator picks
+
+**Following System**
+- Follow favorite projects
+- Receive update notifications
+- Track new versions
+- Get release announcements
+
+<Note>
+When you follow a project, you'll receive notifications about new versions, including changelog information and compatible game versions.
+</Note>
+
+## Team Collaboration
+
+Modrinth supports full team collaboration for projects with granular permission management.
+
+### Team Management
+
+<CardGroup cols={2}>
+  <Card title="Invite Members" icon="user-plus">
+    - Invite by Modrinth username
+    - Set custom role titles
+    - Configure permissions per member
+    - Pending invitation system
+    - Team member profiles
+  </Card>
+  
+  <Card title="Permission System" icon="shield-halved">
+    - Upload version
+    - Delete version
+    - Edit project details
+    - Manage team invites
+    - Remove members
+    - Edit member permissions
+    - Delete project
+    - View analytics
+    - View revenue
+  </Card>
+</CardGroup>
+
+### Monetization Split
+
+Configure revenue sharing between team members:
+- Set monetization weight per member
+- Automatic revenue distribution
+- Transparent earnings tracking
+- Proportional split calculations
+- Individual payout management
+
+**Example**: If Member A has weight 2 and Member B has weight 1, Member A receives 66.7% of revenue while Member B receives 33.3%.
+
+### Collaboration Features
+
+**Version Management**
+- Multiple team members can upload versions
+- Version approval workflow (optional)
+- Rollback capabilities
+- Beta version channels
+
+**Content Editing**
+- Collaborative description editing
+- Gallery management
+- Link updates
+- Metadata changes
+
+**Team Communication**
+- Internal notes
+- Version changelogs
+- Project announcements
+
+## Analytics for Creators
+
+Comprehensive analytics dashboard for tracking project performance.
+
+### Download Analytics
+
+<Tabs>
+  <Tab title="Overview">
+    - Total downloads across all projects
+    - Downloads by project
+    - Downloads by version
+    - Growth trends over time
+    - Comparative project performance
+  </Tab>
+  
+  <Tab title="Time Series">
+    - Daily download charts
+    - Weekly aggregations
+    - Monthly summaries
+    - Year-over-year comparisons
+    - Custom date ranges
+  </Tab>
+  
+  <Tab title="Breakdown">
+    - Downloads by game version
+    - Downloads by mod loader
+    - Downloads by country (aggregated)
+    - Downloads by platform (web/launcher)
+  </Tab>
+</Tabs>
+
+### Engagement Metrics
+
+**Page Views**
+- Project page views
+- Version page views
+- Gallery views
+- Referral sources
+- Search result impressions
+
+**Community Engagement**
+- Follower count growth
+- Comments and discussions
+- Star ratings and reviews
+- Social shares
+
+### Revenue Analytics
+
+For monetized projects:
+- **Ad Revenue** - Earnings from project page ads
+- **Payout History** - Track payment distributions
+- **Revenue Trends** - Historical earnings data
+- **Team Split** - Per-member earnings breakdown
+- **Withdrawal Status** - Available balance and pending payouts
+
+<Tip>
+Revenue analytics are available per-project and aggregated across all your projects. Access them at `/dashboard/analytics`.
+</Tip>
+
+### Data Export
+
+Export your analytics data:
+- CSV format for spreadsheets
+- JSON format for custom analysis
+- Custom date ranges
+- Filtered by project
+- Historical data retention
+
+## Server Hosting
+
+<Note>
+Modrinth Servers is currently in beta. [Learn more about hosting](/hosting)
+</Note>
+
+### Managed Minecraft Servers
+
+Modrinth provides managed Minecraft server hosting with deep platform integration:
+
+<CardGroup cols={2}>
+  <Card title="One-Click Setup" icon="rocket">
+    - Choose server plan and region
+    - Select Minecraft version and mods
+    - Automatic mod installation
+    - Pre-configured for performance
+    - Launch in minutes
+  </Card>
+  
+  <Card title="Modrinth Integration" icon="link">
+    - Browse and install mods from dashboard
+    - One-click modpack deployment
+    - Automatic dependency resolution
+    - Update mods from control panel
+    - Server-compatible mod filtering
+  </Card>
+</CardGroup>
+
+### Server Features
+
+**Management Panel**
+- Start/stop/restart server
+- Real-time console access
+- File manager with FTP access
+- Scheduled restarts and backups
+- Player management tools
+
+**Performance**
+- High-performance NVMe storage
+- DDoS protection included
+- Multiple data center regions
+- Low-latency networking
+- Automatic performance optimization
+
+**Mod Management**
+- Install mods directly from Modrinth
+- Automatic updates for installed mods
+- Version compatibility checking
+- Plugin support for Bukkit/Spigot/Paper
+- Resource pack hosting
+
+### Regions and Availability
+
+Choose from multiple server locations:
+- North America (East and West Coast)
+- Europe (Multiple locations)
+- Asia-Pacific
+- South America
+
+**Features by Region**
+- Low-latency connections
+- Redundant infrastructure
+- Regional compliance
+- 24/7 monitoring
+
+### Pricing Plans
+
+Flexible server plans:
+- **Starter** - Small servers for friends
+- **Community** - Medium-sized communities
+- **Large** - Big servers and networks
+- **Custom** - Enterprise solutions
+
+**Payment Options**
+- Credit/debit cards via Stripe
+- PayPal
+- Multiple currencies supported
+- Monthly or annual billing
+- Prorated upgrades/downgrades
+
+## API Access
+
+Modrinth provides a comprehensive REST API for developers.
+
+### API Features
+
+<CardGroup cols={2}>
+  <Card title="Open and Free" icon="code">
+    - No authentication required for read operations
+    - Rate limiting: 300 requests per minute
+    - Open source API client libraries
+    - GraphQL support (coming soon)
+  </Card>
+  
+  <Card title="Comprehensive" icon="database">
+    - Search projects
+    - Get project details
+    - List versions
+    - Download files
+    - User authentication
+    - Project management
+  </Card>
+</CardGroup>
+
+### API Endpoints
+
+**Public Endpoints** (No auth required)
+```
+GET /v2/search
+GET /v2/project/{id}
+GET /v2/project/{id}/version
+GET /v2/version/{id}
+GET /v2/user/{id}
+GET /v2/tag/category
+GET /v2/tag/loader
+```
+
+**Authenticated Endpoints** (Requires API token)
+```
+POST /v2/project
+PATCH /v2/project/{id}
+POST /v2/version
+POST /v2/version/{id}/file
+GET /v2/analytics
+```
+
+### Rate Limiting
+
+<Tabs>
+  <Tab title="Default Limits">
+    - **Unauthenticated**: 300 requests/minute per IP
+    - **Authenticated**: 1000 requests/minute per token
+    - **Burst**: Up to 50 requests at once
+    - **File downloads**: Unlimited (CDN served)
+  </Tab>
+  
+  <Tab title="Headers">
+    ```
+    X-RateLimit-Limit: 300
+    X-RateLimit-Remaining: 299
+    X-RateLimit-Reset: 1234567890
+    ```
+  </Tab>
+</Tabs>
+
+### Client Libraries
+
+Official and community libraries:
+- **JavaScript/TypeScript** - `@modrinth/api-client`
+- **Python** - `modrinth`
+- **Rust** - `ferinth`
+- **Java** - `modrinth4j`
+- **Go** - `go-modrinth`
+
+**Example Usage** (TypeScript)
+```typescript
+import { ModrinthClient } from '@modrinth/api-client'
+
+const client = new ModrinthClient()
+const results = await client.labrinth.search.search({
+  query: 'optimization',
+  facets: [['categories:optimization']],
+})
+```
+
+### Webhooks
+
+Receive real-time notifications:
+- New version uploads
+- Project updates
+- Comment notifications
+- Analytics milestones
+
+Configure webhooks in project settings.
+
+## Content Guidelines
+
+### Allowed Content
+
+Modrinth welcomes:
+- Mods, plugins, and resource packs
+- Modpacks and data packs
+- Shaders and optimization mods
+- Libraries and APIs
+- Server-side content
+
+### Quality Standards
+
+**Required**
+- Clear project description
+- Accurate version compatibility
+- Proper categorization
+- Appropriate screenshots
+- Working download files
+
+**Best Practices**
+- Detailed changelogs
+- License information
+- Dependency documentation
+- Installation instructions
+- Support contact information
+
+### Prohibited Content
+
+<Warning>
+The following content is not allowed on Modrinth:
+- Malware or harmful code
+- Cheats or unfair advantages in multiplayer
+- Stolen or plagiarized content
+- NSFW or inappropriate content
+- Spam or low-effort projects
+- Copyright violations
+</Warning>
+
+### Moderation
+
+All uploaded content is reviewed:
+- Automated scanning for malware
+- Manual review for policy compliance
+- Community reporting system
+- Quick moderation response times
+- Appeal process for rejections
+
+## Platform Benefits
+
+### For Players
+
+<CardGroup cols={2}>
+  <Card title="Easy Discovery" icon="compass">
+    - Lightning-fast search
+    - Smart recommendations
+    - Curated collections
+    - Follow system for updates
+  </Card>
+  
+  <Card title="Safe Downloads" icon="shield-check">
+    - Malware scanning
+    - Verified creators
+    - Open source code links
+    - File hash verification
+  </Card>
+  
+  <Card title="Launcher Integration" icon="rocket">
+    - Modrinth App support
+    - Third-party launcher compatibility
+    - One-click installations
+    - Automatic updates
+  </Card>
+  
+  <Card title="Free Forever" icon="heart">
+    - No premium tiers
+    - Unlimited downloads
+    - Ad-free browsing
+    - Community-driven
+  </Card>
+</CardGroup>
+
+### For Creators
+
+<CardGroup cols={2}>
+  <Card title="Revenue Sharing" icon="dollar-sign">
+    - Ad revenue from project pages
+    - Team monetization splits
+    - Transparent earnings
+    - Easy withdrawals
+  </Card>
+  
+  <Card title="Growth Tools" icon="chart-line">
+    - Detailed analytics
+    - Discovery algorithms
+    - Featured project spots
+    - Community engagement
+  </Card>
+  
+  <Card title="Collaboration" icon="users">
+    - Team management
+    - Permission system
+    - Version control
+    - Multi-creator support
+  </Card>
+  
+  <Card title="Developer Tools" icon="terminal">
+    - Open API
+    - CI/CD integration
+    - Automated uploads
+    - Build tool plugins
+  </Card>
+</CardGroup>
+
+### Open Source
+
+Modrinth is committed to open source:
+- **Platform code**: Available on GitHub
+- **API**: Fully documented and open
+- **Community-driven**: Feature requests welcome
+- **Transparent**: Public roadmap and decisions
+
+<Tip>
+Contribute to Modrinth on [GitHub](https://github.com/modrinth/code) or join the [Discord community](https://discord.modrinth.com) to get involved.
+</Tip>

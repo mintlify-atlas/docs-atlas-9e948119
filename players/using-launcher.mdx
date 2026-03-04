@@ -1,0 +1,337 @@
+---
+title: Using the Launcher
+description: Learn how to launch Minecraft instances and configure launch settings
+---
+
+The Modrinth launcher provides powerful options for launching and managing your Minecraft instances with optimal performance and customization.
+
+## Launching Minecraft Instances
+
+Starting your game is simple and straightforward:
+
+<Steps>
+  <Step title="Select your profile">
+    Click on the profile/instance you want to play from your library.
+  </Step>
+  
+  <Step title="Launch the game">
+    Click the **Play** button. The launcher will:
+    - Verify all required files are present
+    - Download any missing components
+    - Install Minecraft if not already installed
+    - Apply your launch settings
+    - Start the game
+  </Step>
+  
+  <Step title="Wait for startup">
+    The game will initialize and load. You can see the progress in the launcher.
+  </Step>
+</Steps>
+
+<Note>
+On first launch, the launcher will automatically install the correct version of Minecraft, the mod loader, and all required dependencies. This may take a few minutes.
+</Note>
+
+### Launch Process
+
+When you click Play, the launcher:
+
+1. **Validates installation**: Checks if Minecraft and the mod loader are installed
+2. **Downloads assets**: Retrieves any missing game files, libraries, or assets
+3. **Runs processors**: Executes Forge/NeoForge processors if needed
+4. **Prepares Java**: Ensures the correct Java version is available
+5. **Executes hooks**: Runs pre-launch hooks if configured
+6. **Starts game**: Launches Minecraft with your configured settings
+
+## Java Version Management
+
+The launcher automatically manages Java installations for optimal compatibility:
+
+### Automatic Java Installation
+
+- The launcher detects the required Java version for each Minecraft version
+- If the correct version isn't found, it's automatically downloaded and installed
+- Different profiles can use different Java versions as needed
+
+<Info>
+**Java Version Requirements:**
+- Minecraft 1.17 and below: Java 8
+- Minecraft 1.18-1.20.4: Java 17
+- Minecraft 1.20.5+: Java 21
+</Info>
+
+### Using Custom Java
+
+You can specify a custom Java installation for each profile:
+
+<Steps>
+  <Step title="Open profile settings">
+    Right-click your profile and select **Edit** or click the settings icon.
+  </Step>
+  
+  <Step title="Navigate to Java settings">
+    Go to the **Java** section in profile settings.
+  </Step>
+  
+  <Step title="Select Java installation">
+    Choose from detected Java installations or browse to a custom `java` or `javaw.exe` executable.
+  </Step>
+  
+  <Step title="Save settings">
+    Click **Save** to apply your custom Java configuration.
+  </Step>
+</Steps>
+
+<Warning>
+Using an incorrect Java version may cause crashes or prevent the game from launching. Always use the recommended version for your Minecraft version.
+</Warning>
+
+## Memory Allocation Settings
+
+Proper memory allocation is crucial for performance, especially with mods:
+
+### Setting Memory Allocation
+
+<Tabs>
+  <Tab title="Global Settings">
+    Set default memory for all profiles:
+    
+    1. Open **Settings** (gear icon)
+    2. Navigate to **Java & Memory**
+    3. Adjust **Maximum Memory** slider
+    4. Click **Save**
+    
+    This applies to all profiles unless overridden.
+  </Tab>
+  
+  <Tab title="Per-Profile Settings">
+    Set memory for a specific profile:
+    
+    1. Right-click the profile and select **Edit**
+    2. Go to **Java & Memory**
+    3. Enable **Override global settings**
+    4. Adjust **Maximum Memory** slider
+    5. Click **Save**
+  </Tab>
+</Tabs>
+
+### Memory Recommendations
+
+<CardGroup cols={2}>
+  <Card title="Vanilla / Light Mods" icon="feather">
+    **2-4 GB**
+    
+    Sufficient for vanilla Minecraft or modpacks with few mods.
+  </Card>
+  
+  <Card title="Medium Modpacks" icon="cube">
+    **4-6 GB**
+    
+    Good for modpacks with 50-100 mods or moderate world generation mods.
+  </Card>
+  
+  <Card title="Large Modpacks" icon="cubes">
+    **6-8 GB**
+    
+    Recommended for extensive modpacks with 100+ mods or heavy performance mods.
+  </Card>
+  
+  <Card title="Extreme Modpacks" icon="rocket">
+    **8-12+ GB**
+    
+    For very large modpacks, heavy shaders, or high render distances.
+  </Card>
+</CardGroup>
+
+<Tip>
+Don't allocate all your system RAM to Minecraft. Leave at least 2-4 GB for your operating system and other applications.
+</Tip>
+
+## Game Arguments and JVM Flags
+
+Customize how Minecraft and Java run with advanced arguments:
+
+### JVM Arguments
+
+JVM flags control Java Virtual Machine behavior:
+
+<Steps>
+  <Step title="Open settings">
+    Go to Settings → Java & Memory (or profile-specific settings).
+  </Step>
+  
+  <Step title="Add JVM arguments">
+    In the **JVM Arguments** field, add your custom flags.
+  </Step>
+  
+  <Step title="Common JVM flags">
+    ```bash
+    # Garbage collection optimization
+    -XX:+UseG1GC
+    -XX:+ParallelRefProcEnabled
+    -XX:MaxGCPauseMillis=200
+    -XX:+UnlockExperimentalVMOptions
+    -XX:+DisableExplicitGC
+    
+    # Memory optimization
+    -XX:G1NewSizePercent=30
+    -XX:G1MaxNewSizePercent=40
+    -XX:G1HeapRegionSize=8M
+    -XX:G1ReservePercent=20
+    
+    # Performance tuning
+    -XX:G1HeapWastePercent=5
+    -XX:G1MixedGCCountTarget=4
+    -XX:InitiatingHeapOccupancyPercent=15
+    ```
+  </Step>
+</Steps>
+
+### Game Arguments
+
+Minecraft-specific launch arguments:
+
+- **Resolution**: Set custom window size
+- **Fullscreen**: Force fullscreen mode
+- **Server**: Quick-connect to a server on launch
+- **World**: Auto-load a singleplayer world
+
+<Warning>
+Incorrect JVM flags can cause crashes or poor performance. Only modify these if you know what you're doing, or use tested optimization arguments.
+</Warning>
+
+## Environment Variables
+
+Set custom environment variables for your game:
+
+1. Open profile settings
+2. Navigate to **Environment Variables**
+3. Add key-value pairs as needed
+4. Click **Save**
+
+Common use cases:
+- GPU selection for multi-GPU systems
+- Library paths for custom natives
+- Debugging flags
+
+## Launch Hooks
+
+Execute custom commands at different points in the launch process:
+
+<Tabs>
+  <Tab title="Pre-Launch Hook">
+    Runs **before** Minecraft starts:
+    
+    ```bash
+    # Example: Start a Discord bot
+    /path/to/script.sh
+    
+    # Example: Clean up temp files
+    rm -rf /path/to/temp/*
+    ```
+    
+    Useful for:
+    - Starting companion programs
+    - Cleaning temporary files
+    - Setting up environment
+  </Tab>
+  
+  <Tab title="Wrapper">
+    **Wraps** the Java command:
+    
+    ```bash
+    # Example: Run with custom wrapper
+    gamemode
+    
+    # Example: Use custom Java environment
+    optirun
+    ```
+    
+    Useful for:
+    - Performance tools (GameMode)
+    - GPU switching (optirun, primusrun)
+    - Debugging tools
+  </Tab>
+  
+  <Tab title="Post-Exit Hook">
+    Runs **after** Minecraft closes:
+    
+    ```bash
+    # Example: Backup world
+    /path/to/backup-script.sh
+    
+    # Example: Upload logs
+    /path/to/upload-logs.sh
+    ```
+    
+    Useful for:
+    - Backups
+    - Log processing
+    - Cleanup tasks
+  </Tab>
+</Tabs>
+
+<Note>
+Hooks are shell commands. They must be properly quoted and escaped. If a pre-launch hook fails (non-zero exit code), the game won't launch.
+</Note>
+
+## Troubleshooting Launch Issues
+
+### Game Won't Launch
+
+<AccordionGroup>
+  <Accordion title="Check Java Installation">
+    - Verify the correct Java version is installed
+    - Try auto-installing Java through the launcher
+    - Check Java path in profile settings
+  </Accordion>
+  
+  <Accordion title="Verify Game Files">
+    1. Right-click the profile
+    2. Select **Repair/Reinstall**
+    3. Wait for the process to complete
+    4. Try launching again
+  </Accordion>
+  
+  <Accordion title="Review Logs">
+    1. Click the **Logs** button after a failed launch
+    2. Look for error messages or exceptions
+    3. Common issues:
+       - `OutOfMemoryError`: Increase memory allocation
+       - `ClassNotFoundException`: Mod incompatibility
+       - `UnsatisfiedLinkError`: Wrong Java architecture
+  </Accordion>
+  
+  <Accordion title="Disable Mods">
+    Test if a mod is causing the issue:
+    1. Disable all mods
+    2. Launch the game
+    3. Re-enable mods one by one to find the culprit
+  </Accordion>
+</AccordionGroup>
+
+### Performance Issues
+
+- **Low FPS**: 
+  - Increase memory allocation
+  - Add performance mods (Sodium, Lithium)
+  - Lower render distance
+  - Adjust JVM arguments
+
+- **Stuttering**:
+  - Adjust GC flags
+  - Increase memory allocation
+  - Close background applications
+
+- **Long loading times**:
+  - Check disk speed (SSD recommended)
+  - Reduce number of mods
+  - Increase memory allocation
+
+### Crashes
+
+1. **Check crash reports**: Located in `crash-reports/` folder
+2. **Update mods**: Ensure all mods are compatible versions
+3. **Check Java version**: Use the recommended version
+4. **Review mod compatibility**: Some mods conflict with each other
+5. **Clean install**: Delete and reinstall the profile if needed

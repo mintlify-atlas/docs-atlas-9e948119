@@ -1,0 +1,432 @@
+---
+title: "Backups"
+description: "Protect your server data with automated and manual backups"
+icon: "cloud-arrow-up"
+---
+
+## Overview
+
+Every Modrinth server includes **15 backup slots** at no additional cost. Backups are stored securely off-site and can be restored at any time.
+
+<Note>
+  Backups are stored separately from your server, so they remain safe even if your server has issues.
+</Note>
+
+## Automatic Backup Schedules
+
+Modrinth can automatically create backups on a schedule you define.
+
+### Setting Up Auto-Backups
+
+<Steps>
+  <Step title="Go to Backups tab">
+    Navigate to **Backups** in your server management panel.
+  </Step>
+  
+  <Step title="Enable automatic backups">
+    Toggle the **Automatic backups** switch to enable scheduled backups.
+  </Step>
+  
+  <Step title="Configure schedule">
+    Choose your backup frequency:
+    - Every 6 hours
+    - Every 12 hours  
+    - Daily (recommended)
+    - Every 2 days
+    - Weekly
+  </Step>
+  
+  <Step title="Set retention">
+    Decide how many automatic backups to keep before old ones are deleted.
+  </Step>
+</Steps>
+
+<Tip>
+  Daily backups provide a good balance between protection and storage usage. Adjust based on how frequently your world changes.
+</Tip>
+
+### How Auto-Backups Work
+
+1. **Scheduled backup runs** at the configured time
+2. **Server saves world data** to ensure consistency
+3. **Backup archives created** with world files and configs
+4. **Upload to storage** happens in the background
+5. **Old backups pruned** automatically based on retention policy
+
+<Warning>
+  Backup creation temporarily increases server load. If running a high-player server, schedule backups during off-peak hours.
+</Warning>
+
+## Manual Backups
+
+Create a backup manually whenever you need to preserve the current server state.
+
+### Creating a Manual Backup
+
+<Steps>
+  <Step title="Navigate to Backups">
+    Open the **Backups** tab in your server panel.
+  </Step>
+  
+  <Step title="Click Create Backup">
+    Click the **Create Backup** button in the top-right.
+  </Step>
+  
+  <Step title="Name your backup">
+    Enter a descriptive name:
+    ```
+    Before_Major_Update
+    Pre_Mod_Installation
+    Working_Version_2024_03_14
+    ```
+  </Step>
+  
+  <Step title="Wait for completion">
+    Watch the progress bar as the backup is created and uploaded.
+  </Step>
+</Steps>
+
+<Tip>
+  Always create a manual backup before:
+  - Installing major mods or updates
+  - Making significant configuration changes
+  - Updating server software
+  - Performing world edits
+</Tip>
+
+### When to Create Manual Backups
+
+<CardGroup cols={2}>
+  <Card title="Before updates" icon="download">
+    Create a backup before updating:
+    - Minecraft version
+    - Server software
+    - Major mods
+  </Card>
+  
+  <Card title="Before changes" icon="wrench">
+    Backup before:
+    - Installing new mods
+    - Editing world data
+    - Changing server properties
+  </Card>
+  
+  <Card title="After milestones" icon="flag">
+    Save progress after:
+    - Completing major builds
+    - Reaching goals
+    - Server events
+  </Card>
+  
+  <Card title="Before troubleshooting" icon="bug">
+    Protect data before:
+    - Debugging issues
+    - Testing fixes
+    - Removing problematic mods
+  </Card>
+</CardGroup>
+
+## Restoring from Backups
+
+### Restore Process
+
+<Warning>
+  **Important:** Restoring a backup will replace all current server data. Make sure this is what you want to do.
+</Warning>
+
+<Steps>
+  <Step title="Stop your server">
+    Stop the server before restoring. This prevents data conflicts.
+  </Step>
+  
+  <Step title="Select backup">
+    In the **Backups** tab, find the backup you want to restore.
+  </Step>
+  
+  <Step title="Click Restore">
+    1. Click the **Restore** button next to the backup
+    2. Read the confirmation warning
+    3. Type the server name to confirm
+    4. Click **Confirm Restore**
+  </Step>
+  
+  <Step title="Wait for restoration">
+    The backup will be downloaded and extracted. This may take several minutes depending on size.
+    
+    Progress is shown in real-time:
+    ```
+    Downloading backup... 45%
+    Extracting files... 78%
+    Restoring complete!
+    ```
+  </Step>
+  
+  <Step title="Start server">
+    Once restoration completes, start your server normally.
+  </Step>
+</Steps>
+
+<Note>
+  If restoration fails, your server will remain in its pre-restore state. Contact support if you encounter issues.
+</Note>
+
+### What Gets Restored
+
+A full backup restore includes:
+
+- **World data** - All dimensions and chunks
+- **Player data** - Inventories, positions, stats
+- **Server configurations** - `server.properties` and config files
+- **Installed mods/plugins** - All mod files
+- **Permissions and data** - Player permissions and plugin data
+
+<Warning>
+  Backups do **not** include:
+  - Server software binaries (automatically reinstalled)
+  - Custom startup scripts (reconfigured automatically)
+  - Network settings (preserved separately)
+</Warning>
+
+## Backup Retention Policies
+
+### Understanding Backup Slots
+
+You have 15 backup slots:
+
+```
+📦 Slot 1: Auto_2024_03_14_12_00
+📦 Slot 2: Auto_2024_03_13_12_00  
+📦 Slot 3: Manual_Before_Update
+📦 Slot 4: Auto_2024_03_12_12_00
+...
+📦 Slot 15: Auto_2024_03_01_12_00
+```
+
+### Automatic Cleanup
+
+When backup slots are full:
+
+1. **Manual backups** are kept and never auto-deleted
+2. **Oldest automatic backups** are deleted first
+3. **New backups** fill the freed slots
+
+<Tip>
+  If you want to preserve an automatic backup, rename it to convert it to a manual backup.
+</Tip>
+
+### Managing Backup Storage
+
+<AccordionGroup>
+  <Accordion title="Check storage usage" icon="database">
+    View backup storage in the **Backups** tab header:
+    ```
+    Backups: 12 / 15 slots used
+    Total size: 8.4 GB
+    ```
+  </Accordion>
+  
+  <Accordion title="Delete old backups" icon="trash">
+    Manually delete backups you no longer need:
+    1. Find the backup in the list
+    2. Click the three-dot menu (...)
+    3. Select **Delete**
+    4. Confirm deletion
+    
+    <Warning>
+      Deleted backups cannot be recovered. Make sure you don't need them.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Rename backups" icon="pen">
+    Give backups descriptive names:
+    1. Click the three-dot menu (...)
+    2. Select **Rename**
+    3. Enter new name
+    4. Click **Save**
+  </Accordion>
+</AccordionGroup>
+
+## Download Backups Locally
+
+You can download backups to your computer for extra security or to use in other environments.
+
+### Downloading a Backup
+
+<Steps>
+  <Step title="Open Backups tab">
+    Navigate to **Backups** in your server panel.
+  </Step>
+  
+  <Step title="Select backup to download">
+    Find the backup you want to download.
+  </Step>
+  
+  <Step title="Click Download">
+    1. Click the three-dot menu (...) next to the backup
+    2. Select **Download**
+    3. Choose a location on your computer
+    4. Wait for the download to complete
+  </Step>
+</Steps>
+
+<Note>
+  Backup downloads are provided as compressed `.tar.gz` archives to reduce file size.
+</Note>
+
+### Using Downloaded Backups
+
+You can use downloaded backups to:
+
+- **Run locally** - Extract and run on your own computer
+- **Migrate servers** - Move to a different hosting provider
+- **Archive** - Keep offline backups of important worlds
+- **Share** - Send world to others
+
+#### Extracting a Backup
+
+**On Windows:**
+```bash
+# Using 7-Zip
+7z x backup.tar.gz
+7z x backup.tar
+```
+
+**On macOS/Linux:**
+```bash
+tar -xzf backup.tar.gz
+```
+
+<Tip>
+  After extraction, you'll find your world folder, server files, and configurations ready to use.
+</Tip>
+
+## Backup Progress Tracking
+
+Modrinth provides real-time progress updates for backup operations via WebSocket connection.
+
+### Backup States
+
+| State | Description |
+|-------|-------------|
+| **Queued** | Backup is waiting to start |
+| **Ongoing** | Backup is being created |
+| **Done** | Backup completed successfully |
+| **Failed** | Backup encountered an error |
+| **Cancelled** | Backup was manually cancelled |
+| **Unchanged** | No changes since last backup |
+
+### Progress Indicators
+
+During backup operations, you'll see:
+
+```
+Creating backup...
+[================>             ] 65%
+
+Files processed: 1,234 / 1,890
+Size: 2.4 GB
+```
+
+<Note>
+  You can continue using your server normally during backup creation. Performance impact is minimal.
+</Note>
+
+### Cancelling Backups
+
+If you need to stop a backup in progress:
+
+1. Find the ongoing backup in the list
+2. Click the **Cancel** button
+3. Confirm cancellation
+
+The partial backup will be discarded.
+
+## Backup Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular schedule" icon="calendar">
+    Enable automatic backups with daily frequency for active servers.
+  </Card>
+  
+  <Card title="Before changes" icon="shield">
+    Always create a manual backup before:
+    - Major updates
+    - Mod installations
+    - Configuration changes
+  </Card>
+  
+  <Card title="Test restores" icon="flask">
+    Periodically test backup restoration to ensure they work correctly.
+  </Card>
+  
+  <Card title="Keep local copies" icon="hard-drive">
+    Download important backups to your computer for additional safety.
+  </Card>
+</CardGroup>
+
+### Backup Naming Convention
+
+Use descriptive names for manual backups:
+
+```
+✅ Good names:
+   - Before_1.20_Update
+   - Pre_Mod_Cleanup_2024_03
+   - Working_Dragon_Fight_Arena
+
+❌ Bad names:
+   - backup1
+   - test
+   - asdf
+```
+
+## Troubleshooting Backups
+
+### Backup Creation Failed
+
+<AccordionGroup>
+  <Accordion title="Not enough storage" icon="database">
+    **Solution:** Delete old backups to free up slots, or contact support to increase your backup quota.
+  </Accordion>
+  
+  <Accordion title="Server is offline" icon="power-off">
+    **Solution:** Backups can only be created when the server is running. Start your server and try again.
+  </Accordion>
+  
+  <Accordion title="Another backup in progress" icon="clock">
+    **Solution:** Wait for the current backup to complete before starting a new one.
+  </Accordion>
+</AccordionGroup>
+
+### Restore Failed
+
+<Steps>
+  <Step title="Verify server is stopped">
+    Make sure your server is completely stopped before restoring.
+  </Step>
+  
+  <Step title="Check backup integrity">
+    If a backup is corrupted, try a different backup.
+  </Step>
+  
+  <Step title="Contact support">
+    If restoration repeatedly fails, contact Modrinth Support with:
+    - Server ID
+    - Backup name
+    - Error message
+  </Step>
+</Steps>
+
+### Backup Shows "Unchanged"
+
+This means no files were modified since the last backup:
+
+- Server was offline
+- No players joined
+- No world changes occurred
+
+This is normal and saves storage space.
+
+<Note>
+  Need more than 15 backup slots? Contact support to discuss your requirements.
+</Note>

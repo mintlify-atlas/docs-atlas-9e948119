@@ -1,0 +1,691 @@
+---
+title: "Configuration"
+description: "Configure server properties, startup settings, and network options"
+icon: "gear"
+---
+
+## Server Properties
+
+The `server.properties` file controls core Minecraft server behavior. Modrinth provides a user-friendly interface to edit these settings.
+
+### Accessing Server Properties
+
+<Steps>
+  <Step title="Navigate to Options">
+    Go to **Options** > **Properties** in your server panel.
+  </Step>
+  
+  <Step title="Browse settings">
+    Scroll through the list or use the search box to find specific properties.
+  </Step>
+  
+  <Step title="Make changes">
+    Edit values using:
+    - **Toggle switches** for boolean settings
+    - **Number inputs** for numeric values
+    - **Text inputs** for strings
+    - **Dropdowns** for predefined options
+  </Step>
+  
+  <Step title="Save and restart">
+    Click **Save Changes** at the bottom, then restart your server for changes to take effect.
+  </Step>
+</Steps>
+
+<Warning>
+  The server.properties file is generated after the first server startup. If you don't see the properties page, start your server first.
+</Warning>
+
+### Key Server Properties
+
+#### World Settings
+
+<AccordionGroup>
+  <Accordion title="level-name" icon="globe">
+    The name of your world folder.
+    
+    ```
+    Default: world
+    Example: survival_world
+    ```
+    
+    <Warning>
+      Changing this creates a new world. Back up your current world first!
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="level-seed" icon="seedling">
+    The seed used to generate your world.
+    
+    ```
+    Default: (empty - random)
+    Example: 12345, "Awesome Seed"
+    ```
+    
+    <Note>
+      Seeds only affect newly generated chunks. Existing chunks remain unchanged.
+    </Note>
+  </Accordion>
+  
+  <Accordion title="level-type" icon="mountain">
+    The world generation type.
+    
+    **Options:**
+    - `default` - Standard world generation
+    - `flat` - Flat/superflat world
+    - `large_biomes` - Biomes 16x larger
+    - `amplified` - Extreme terrain
+    - `single_biome_surface` - One biome only
+    
+    <Tip>
+      Amplified worlds require more RAM and processing power.
+    </Tip>
+  </Accordion>
+  
+  <Accordion title="spawn-protection" icon="shield">
+    Radius of spawn area where only operators can modify blocks.
+    
+    ```
+    Default: 16
+    Range: 0-999
+    Set to 0 to disable
+    ```
+  </Accordion>
+  
+  <Accordion title="max-world-size" icon="ruler">
+    Maximum world border size in blocks.
+    
+    ```
+    Default: 29999984
+    Range: 1-29999984
+    ```
+  </Accordion>
+</AccordionGroup>
+
+#### Gameplay Settings
+
+<AccordionGroup>
+  <Accordion title="difficulty" icon="skull">
+    Game difficulty level.
+    
+    **Options:**
+    - `peaceful` - No hostile mobs, health regenerates
+    - `easy` - Reduced mob damage
+    - `normal` - Standard difficulty
+    - `hard` - Increased mob damage and features
+    
+    <Note>
+      On pre-1.13 servers, use numbers: 0=peaceful, 1=easy, 2=normal, 3=hard
+    </Note>
+  </Accordion>
+  
+  <Accordion title="gamemode" icon="gamepad">
+    Default game mode for new players.
+    
+    **Options:**
+    - `survival` - Gather resources, health/hunger
+    - `creative` - Unlimited resources, flying
+    - `adventure` - Survival without block breaking
+    - `spectator` - Fly through blocks, observe
+  </Accordion>
+  
+  <Accordion title="hardcore" icon="heart-crack">
+    Enable hardcore mode (permanent death).
+    
+    ```
+    Default: false
+    ```
+    
+    <Warning>
+      In hardcore mode, players are banned when they die. Use with caution!
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="pvp" icon="crossed-swords">
+    Allow player vs player combat.
+    
+    ```
+    Default: true
+    ```
+  </Accordion>
+</AccordionGroup>
+
+#### Server Behavior
+
+<AccordionGroup>
+  <Accordion title="max-players" icon="users">
+    Maximum number of players allowed on the server.
+    
+    ```
+    Default: 20
+    Range: 1-99999
+    ```
+    
+    <Tip>
+      Higher player counts require more RAM. Plan your server resources accordingly.
+    </Tip>
+  </Accordion>
+  
+  <Accordion title="view-distance" icon="eye">
+    How many chunks are visible to players.
+    
+    ```
+    Default: 10
+    Range: 3-32
+    ```
+    
+    <Note>
+      Higher values improve visuals but increase RAM usage and bandwidth. 8-12 is recommended for most servers.
+    </Note>
+  </Accordion>
+  
+  <Accordion title="simulation-distance" icon="compass">
+    How many chunks actively simulate (mobs, crops, redstone).
+    
+    ```
+    Default: 10
+    Range: 3-32
+    ```
+    
+    <Tip>
+      Lower than view-distance to reduce CPU load while maintaining visual quality.
+    </Tip>
+  </Accordion>
+  
+  <Accordion title="max-tick-time" icon="clock">
+    Maximum tick time before server watchdog kicks in (milliseconds).
+    
+    ```
+    Default: 60000
+    Set to -1 to disable watchdog
+    ```
+    
+    <Warning>
+      Setting too low may cause false-positive crashes during legitimate lag.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+#### Network and Performance
+
+<AccordionGroup>
+  <Accordion title="network-compression-threshold" icon="compress">
+    Packet size threshold for compression (bytes).
+    
+    ```
+    Default: 256
+    Range: -1 to 2147483647
+    Set to -1 to disable compression
+    ```
+    
+    <Note>
+      Lower values use more CPU but save bandwidth. Higher values do the opposite.
+    </Note>
+  </Accordion>
+  
+  <Accordion title="entity-broadcast-range-percentage" icon="broadcast-tower">
+    How far entities are sent to clients (percentage of normal range).
+    
+    ```
+    Default: 100
+    Range: 10-1000
+    ```
+    
+    <Tip>
+      Reduce to 50-75% to decrease bandwidth usage on crowded servers.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+### Searching Properties
+
+Use the search box to quickly find settings:
+
+```
+Search: "spawn"
+
+Results:
+- spawn-protection
+- spawn-monsters  
+- spawn-animals
+- spawn-npcs
+- allow-nether
+```
+
+<Tip>
+  Not sure what a property does? Check the [Minecraft Wiki](https://minecraft.wiki/w/Server.properties) for detailed explanations.
+</Tip>
+
+## Startup Configuration
+
+### Java Version
+
+Select which Java version your server runs on:
+
+<AccordionGroup>
+  <Accordion title="Java 8" icon="coffee">
+    For Minecraft 1.6 - 1.16
+    
+    - Legacy mod support
+    - Compatible with older plugins
+    - Less memory efficient
+  </Accordion>
+  
+  <Accordion title="Java 11" icon="coffee">
+    For Minecraft 1.12 - 1.17
+    
+    - Good balance of compatibility
+    - Better performance than Java 8
+  </Accordion>
+  
+  <Accordion title="Java 17" icon="coffee">
+    For Minecraft 1.17 - 1.19
+    
+    - Required for 1.18+
+    - Improved garbage collection
+    - Better memory management
+  </Accordion>
+  
+  <Accordion title="Java 21" icon="coffee">
+    For Minecraft 1.20+
+    
+    - Required for 1.20.5+
+    - Latest performance improvements
+    - Best garbage collection
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  **Compatibility matters!** Modrinth shows only compatible Java versions by default. Toggle "Show all Java versions" if you need a different version, but ensure your Minecraft version supports it.
+</Warning>
+
+### Java Runtime
+
+Choose your Java runtime environment:
+
+| Runtime | Description | Best For |
+|---------|-------------|----------|
+| **Corretto** | Amazon's build of OpenJDK | General use, production servers |
+| **Temurin** | Eclipse's build of OpenJDK | Standard choice, well-tested |
+| **GraalVM** | High-performance JVM | Large servers, performance-critical |
+
+<Tip>
+  GraalVM can provide 10-20% better performance but uses more memory. Try it if you have headroom.
+</Tip>
+
+### Startup Command
+
+Advanced users can modify the startup invocation:
+
+```bash
+java -Xms4G -Xmx4G -XX:+UseG1GC \
+  -XX:+ParallelRefProcEnabled \
+  -XX:MaxGCPauseMillis=200 \
+  -XX:+UnlockExperimentalVMOptions \
+  -XX:+DisableExplicitGC \
+  -jar server.jar nogui
+```
+
+<Warning>
+  **Advanced feature!** Only modify the startup command if you know what you're doing. Invalid commands can prevent your server from starting.
+</Warning>
+
+#### Common JVM Flags
+
+<CardGroup cols={2}>
+  <Card title="-Xms / -Xmx" icon="memory">
+    Set initial and maximum memory allocation.
+    ```
+    -Xms4G -Xmx4G
+    ```
+    Make them equal to prevent memory reallocation lag.
+  </Card>
+  
+  <Card title="-XX:+UseG1GC" icon="broom">
+    Enable G1 garbage collector (recommended for most servers).
+  </Card>
+  
+  <Card title="-XX:MaxGCPauseMillis" icon="clock">
+    Target maximum pause time for garbage collection (milliseconds).
+    ```
+    -XX:MaxGCPauseMillis=200
+    ```
+  </Card>
+  
+  <Card title="-XX:+UseZGC" icon="zap">
+    Enable Z garbage collector (Java 17+, very low pause times).
+  </Card>
+</CardGroup>
+
+### Restoring Default Startup
+
+If you encounter issues with custom startup commands:
+
+1. Go to **Options** > **Startup**
+2. Click **Restore default command**
+3. Save changes
+4. Restart server
+
+## Network Configuration
+
+### Modrinth Subdomain
+
+Every server gets a free subdomain at `modrinth.gg`:
+
+<Steps>
+  <Step title="Choose your subdomain">
+    Go to **Options** > **Network** and find the subdomain field.
+    
+    ```
+    your-cool-server.modrinth.gg
+    ```
+  </Step>
+  
+  <Step title="Check availability">
+    Subdomains must be:
+    - At least 5 characters long
+    - Only letters, numbers, and hyphens
+    - Unique across all Modrinth servers
+  </Step>
+  
+  <Step title="Save changes">
+    Click **Save Changes**. Your new subdomain is active immediately.
+  </Step>
+</Steps>
+
+<Note>
+  Players can connect using either your subdomain or the direct IP:port.
+</Note>
+
+### Custom Domain Setup
+
+You can use your own domain to connect to your server:
+
+<Steps>
+  <Step title="Get your server IP">
+    Find your dedicated IP address in the **Options** > **Network** section.
+    
+    ```
+    IP: 123.456.789.0
+    Port: 25565
+    ```
+  </Step>
+  
+  <Step title="Add DNS records">
+    In your domain registrar's DNS settings, add:
+    
+    **A Record:**
+    ```
+    Type: A
+    Name: play (or @)
+    Value: 123.456.789.0
+    TTL: 300
+    ```
+    
+    **SRV Record:**
+    ```
+    Type: SRV
+    Name: _minecraft._tcp.play
+    Value: 0 10 25565 play.yourdomain.com
+    TTL: 300
+    ```
+  </Step>
+  
+  <Step title="Wait for propagation">
+    DNS changes can take 5-60 minutes to propagate globally.
+  </Step>
+  
+  <Step title="Test connection">
+    Try connecting to `play.yourdomain.com` from Minecraft.
+  </Step>
+</Steps>
+
+<Tip>
+  Use the **Export DNS records** button in the Network settings to download a text file with properly formatted DNS records for your domain registrar.
+</Tip>
+
+### Port Allocations
+
+Modrinth servers include one primary port (default: 25565) for Minecraft connections.
+
+#### Adding Additional Ports
+
+Some mods require extra ports (e.g., Dynmap, voice chat mods):
+
+<Steps>
+  <Step title="Go to Network settings">
+    Navigate to **Options** > **Network**.
+  </Step>
+  
+  <Step title="Create allocation">
+    Click **New allocation** button.
+  </Step>
+  
+  <Step title="Name the allocation">
+    Give it a descriptive name:
+    ```
+    Dynmap Web Interface
+    Voice Chat
+    RCON
+    ```
+  </Step>
+  
+  <Step title="Get port number">
+    A random port is assigned automatically:
+    ```
+    Port 25566 assigned
+    ```
+  </Step>
+  
+  <Step title="Configure your mod">
+    Update the mod's config to use the assigned port.
+  </Step>
+</Steps>
+
+<Note>
+  You can create up to 15 additional port allocations. Each allocation gets a unique port number.
+</Note>
+
+#### Managing Allocations
+
+For each allocation, you can:
+
+- **Copy connection info** - Quick copy IP:port to clipboard
+- **Rename** - Update the allocation name
+- **Delete** - Remove allocations you no longer need
+
+<Warning>
+  Deleting an allocation releases the port. You cannot reserve the same port again - a new random port will be assigned if you create another allocation.
+</Warning>
+
+### DNS Record Export
+
+For users with custom domains:
+
+1. Enter your domain in the **Generated DNS records** section
+2. Click **Export DNS records**
+3. Download the text file
+4. Import into your DNS provider
+
+The exported file contains properly formatted records:
+
+```dns
+; A Records
+play.example.com.    1    IN    A    123.456.789.0
+
+; SRV Records  
+_minecraft._tcp.play.example.com.    1    IN    SRV    0 10 25565 play.example.com.
+```
+
+## Environment Variables
+
+Modrinth automatically configures environment variables for your server. These are set based on your plan and configuration:
+
+### Resource Limits
+
+```bash
+MEMORY_LIMIT=6144      # RAM in MB
+CPU_LIMIT=3            # CPU cores
+STORAGE_LIMIT=30720    # Disk in MB
+```
+
+These values are read-only and set according to your server plan.
+
+### Java Configuration
+
+```bash
+JAVA_VERSION=lts17     # Java version
+JAVA_RUNTIME=corretto  # Java runtime
+```
+
+Modified via **Options** > **Startup**.
+
+### Server Identification
+
+```bash
+SERVER_ID=abc123...    # Unique server ID
+REGION=us-east         # Datacenter location
+```
+
+<Note>
+  Environment variables are managed automatically. Manual modification is not supported.
+</Note>
+
+## Player Permissions
+
+While Modrinth doesn't directly manage in-game permissions, you can configure them through:
+
+### Operator Permissions
+
+Grant operator status via console:
+
+```bash
+/op PlayerName              # Make player an operator
+/deop PlayerName            # Remove operator status
+```
+
+**Operator levels (1-4):**
+- Level 1: Bypass spawn protection
+- Level 2: Use cheat commands and command blocks
+- Level 3: Use player management commands
+- Level 4: Use all commands including /stop
+
+### Whitelist
+
+Restrict server access to specific players:
+
+```bash
+/whitelist on               # Enable whitelist
+/whitelist add PlayerName   # Add player
+/whitelist remove PlayerName # Remove player
+/whitelist list             # View whitelist
+```
+
+Edit `whitelist.json` via **Files** tab for bulk management.
+
+### Permission Plugins
+
+For advanced permissions, install a plugin:
+
+- **LuckPerms** - Modern, feature-rich
+- **PermissionsEx** - Traditional, widely supported
+- **GroupManager** - Simple group-based permissions
+
+Install from the **Content** > **Plugins** tab.
+
+<Tip>
+  LuckPerms is recommended for most servers. It has a web editor for easy permission management.
+</Tip>
+
+## Configuration Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Backup first" icon="shield">
+    Always create a backup before changing critical settings like world generation or difficulty.
+  </Card>
+  
+  <Card title="Change gradually" icon="gauge">
+    Make one change at a time so you can identify what caused issues.
+  </Card>
+  
+  <Card title="Test thoroughly" icon="flask">
+    Test configuration changes with a few players before announcing to everyone.
+  </Card>
+  
+  <Card title="Document changes" icon="file-lines">
+    Keep notes on what you changed and why. Helps with troubleshooting later.
+  </Card>
+</CardGroup>
+
+### Performance Optimization
+
+For better performance:
+
+1. **Reduce view distance** to 8-10 chunks
+2. **Lower simulation distance** to match view distance  
+3. **Enable G1GC** in startup command (Java 17+)
+4. **Install optimization mods:**
+   - Lithium (Fabric)
+   - Phosphor (Fabric)
+   - Starlight (Fabric/Forge)
+   - FerriteCore (Fabric/Forge)
+
+<Note>
+  Performance optimization mods can improve TPS by 20-30% with no gameplay changes.
+</Note>
+
+## Troubleshooting Configuration
+
+### Server Won't Start After Changes
+
+<Steps>
+  <Step title="Check recent changes">
+    Identify what you changed last.
+  </Step>
+  
+  <Step title="Review console logs">
+    Look for error messages in the **Console** tab during startup.
+  </Step>
+  
+  <Step title="Restore backup">
+    If the issue persists, restore from your last working backup.
+  </Step>
+  
+  <Step title="Reset to defaults">
+    For startup issues, use **Restore default command** in Startup settings.
+  </Step>
+</Steps>
+
+### Invalid Property Values
+
+<AccordionGroup>
+  <Accordion title="Server rejects changes" icon="exclamation-triangle">
+    Some properties have valid ranges. Check the Minecraft Wiki for acceptable values.
+  </Accordion>
+  
+  <Accordion title="Changes don't apply" icon="rotate">
+    Make sure you:
+    1. Clicked **Save Changes**
+    2. Restarted the server
+    3. Waited for full startup
+  </Accordion>
+</AccordionGroup>
+
+### Network Issues
+
+<AccordionGroup>
+  <Accordion title="Custom domain not working" icon="globe">
+    1. Verify DNS records are correct
+    2. Wait for DNS propagation (up to 60 minutes)
+    3. Test with IP:port to confirm server is running
+    4. Use [DNS checker](https://dnschecker.org) to verify propagation
+  </Accordion>
+  
+  <Accordion title="Port allocation fails" icon="network-wired">
+    You've reached the 15 allocation limit. Delete unused allocations to create new ones.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  For configuration issues you can't resolve, contact Modrinth Support with your server ID and a description of what you changed.
+</Note>

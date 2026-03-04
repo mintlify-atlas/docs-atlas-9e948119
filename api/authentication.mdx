@@ -1,0 +1,413 @@
+---
+title: Authentication
+description: Authenticating API requests with personal access tokens and OAuth 2.0
+---
+
+The Modrinth API supports two authentication methods: **Personal Access Tokens (PATs)** and **OAuth 2.0**. Most endpoints are public and don't require authentication, but certain operations require an authenticated request.
+
+## When Authentication is Required
+
+Authentication is needed for:
+
+- **Creating data** - Creating projects, versions, reports, etc.
+- **Modifying data** - Editing project metadata, updating versions, etc.
+- **Accessing private data** - Draft projects, notifications, emails, payout data
+- **User-specific operations** - Managing collections, following projects, etc.
+
+<Note>
+Most read operations (viewing public projects, searching, downloading files) do not require authentication.
+</Note>
+
+## Personal Access Tokens
+
+Personal Access Tokens (PATs) are the recommended authentication method for server-side applications and scripts.
+
+### Creating a PAT
+
+1. Log in to [modrinth.com](https://modrinth.com)
+2. Navigate to [Settings > Account](https://modrinth.com/settings/account)
+3. Scroll to the **Personal Access Tokens** section
+4. Click **Create a token**
+5. Enter a token name and select the required scopes
+6. Click **Create** and copy your token immediately
+
+<Warning>
+Your token is only shown once during creation. Store it securely - treat it like a password.
+</Warning>
+
+### Using a PAT
+
+Include your token in the `Authorization` header:
+
+```bash
+curl -X GET "https://api.modrinth.com/v2/user" \
+  -H "Authorization: mrp_RNtLRSPmGj2pd1v1ubi52nX7TJJM9sznrmwhAuj511oe4t1jAqAQ3D6Wc8Ic"
+```
+
+<CodeGroup>
+```javascript JavaScript
+const response = await fetch('https://api.modrinth.com/v2/user', {
+  headers: {
+    'Authorization': 'mrp_YOUR_TOKEN_HERE',
+    'User-Agent': 'my-app/1.0.0'
+  }
+});
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'mrp_YOUR_TOKEN_HERE',
+    'User-Agent': 'my-app/1.0.0'
+}
+
+response = requests.get('https://api.modrinth.com/v2/user', headers=headers)
+```
+
+```java Java
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest request = HttpRequest.newBuilder()
+    .uri(URI.create("https://api.modrinth.com/v2/user"))
+    .header("Authorization", "mrp_YOUR_TOKEN_HERE")
+    .header("User-Agent", "my-app/1.0.0")
+    .build();
+
+HttpResponse<String> response = client.send(request, 
+    HttpResponse.BodyHandlers.ofString());
+```
+
+```go Go
+req, _ := http.NewRequest("GET", "https://api.modrinth.com/v2/user", nil)
+req.Header.Set("Authorization", "mrp_YOUR_TOKEN_HERE")
+req.Header.Set("User-Agent", "my-app/1.0.0")
+
+client := &http.Client{}
+resp, err := client.Do(req)
+```
+</CodeGroup>
+
+### Token Format
+
+PATs always start with the prefix `mrp_` (Modrinth Personal Token):
+```
+mrp_RNtLRSPmGj2pd1v1ubi52nX7TJJM9sznrmwhAuj511oe4t1jAqAQ3D6Wc8Ic
+```
+
+### Managing PATs
+
+You can manage your tokens at any time:
+- **View tokens**: See all active tokens and their last used date
+- **Revoke tokens**: Immediately invalidate a token
+- **Update scopes**: Create a new token with different permissions
+
+## OAuth 2.0
+
+OAuth 2.0 is the recommended method for client-side applications that act on behalf of users.
+
+### OAuth Flow Overview
+
+1. **Create an OAuth Application** in your [Modrinth account settings](https://modrinth.com/settings/applications)
+2. **Redirect users** to Modrinth's authorization page
+3. **Receive authorization code** via callback
+4. **Exchange code** for access token
+5. **Make authenticated requests** using the access token
+
+### Creating an OAuth Application
+
+1. Navigate to [Settings > Applications](https://modrinth.com/settings/applications)
+2. Click **Create an application**
+3. Fill in:
+   - **Name**: Your application name
+   - **Description**: What your app does
+   - **Redirect URIs**: Allowed callback URLs (one per line)
+   - **Max Scopes**: Maximum permissions your app can request
+4. Click **Create** and note your **Client ID** and **Client Secret**
+
+### Step 1: Initiate Authorization
+
+Redirect users to Modrinth's authorization endpoint:
+
+```
+https://api.modrinth.com/v2/_internal/oauth/authorize?
+  client_id=YOUR_CLIENT_ID&
+  redirect_uri=https://yourapp.com/callback&
+  scope=USER_READ+PROJECT_READ+PROJECT_WRITE&
+  state=random_state_string
+```
+
+**Parameters:**
+- `client_id` (required): Your OAuth application's client ID
+- `redirect_uri` (required): Must match a registered redirect URI
+- `scope` (optional): Space or `+` separated list of scopes (defaults to app's max scopes)
+- `state` (recommended): Random string to prevent CSRF attacks
+
+### Step 2: Handle the Callback
+
+After the user authorizes your app, they're redirected to your callback URL:
+
+```
+https://yourapp.com/callback?code=AUTHORIZATION_CODE&state=random_state_string
+```
+
+Or if the user denies access:
+```
+https://yourapp.com/callback?error=access_denied&state=random_state_string
+```
+
+### Step 3: Exchange Code for Token
+
+Exchange the authorization code for an access token:
+
+```bash
+curl -X POST "https://api.modrinth.com/v2/_internal/oauth/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "code=AUTHORIZATION_CODE" \
+  -d "redirect_uri=https://yourapp.com/callback"
+```
+
+**Response:**
+```json
+{
+  "access_token": "mro_xxxxxxxxxxxx",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "USER_READ PROJECT_READ PROJECT_WRITE"
+}
+```
+
+### Step 4: Use the Access Token
+
+Use the access token in the `Authorization` header:
+
+```bash
+curl -X GET "https://api.modrinth.com/v2/user" \
+  -H "Authorization: mro_xxxxxxxxxxxx"
+```
+
+OAuth access tokens start with the prefix `mro_` (Modrinth OAuth).
+
+### Token Refresh
+
+OAuth tokens expire after a period of time. When a token expires, you'll receive a `401 Unauthorized` response. Users must re-authorize to obtain a new token.
+
+## Scopes and Permissions
+
+Both PATs and OAuth tokens use scopes to limit permissions. Request only the scopes your application needs.
+
+### Available Scopes
+
+<AccordionGroup>
+  <Accordion title="User Scopes">
+    - `USER_READ`: Read user profile data
+    - `USER_READ_EMAIL`: Read user email address
+    - `USER_WRITE`: Update user profile (username, avatar, bio, etc.)
+    - `USER_DELETE`: Delete user account (PAT only, not available via OAuth)
+    - `USER_AUTH_WRITE`: Modify authentication settings (PAT only)
+  </Accordion>
+
+  <Accordion title="Project Scopes">
+    - `PROJECT_CREATE`: Create new projects
+    - `PROJECT_READ`: Read user's projects (including private/draft)
+    - `PROJECT_WRITE`: Edit project metadata, team members, settings
+    - `PROJECT_DELETE`: Delete projects
+  </Accordion>
+
+  <Accordion title="Version Scopes">
+    - `VERSION_CREATE`: Upload new versions
+    - `VERSION_READ`: Read user's versions (including private/draft)
+    - `VERSION_WRITE`: Edit version metadata and files
+    - `VERSION_DELETE`: Delete versions
+  </Accordion>
+
+  <Accordion title="Notification Scopes">
+    - `NOTIFICATION_READ`: Read user notifications
+    - `NOTIFICATION_WRITE`: Mark notifications as read or delete them
+  </Accordion>
+
+  <Accordion title="Collection Scopes">
+    - `COLLECTION_CREATE`: Create collections
+    - `COLLECTION_READ`: Read user's collections (including private)
+    - `COLLECTION_WRITE`: Edit collections
+    - `COLLECTION_DELETE`: Delete collections
+  </Accordion>
+
+  <Accordion title="Analytics & Payouts">
+    - `ANALYTICS`: Access analytics data
+    - `PAYOUTS_READ`: Read payout information
+    - `PAYOUTS_WRITE`: Withdraw funds
+    - `PERFORM_ANALYTICS`: Submit analytics events
+  </Accordion>
+
+  <Accordion title="Other Scopes">
+    - `REPORT_CREATE`: Create reports
+    - `REPORT_READ`: Read user's reports
+    - `THREAD_READ`: Read message threads
+    - `THREAD_WRITE`: Send messages in threads
+    - `ORGANIZATION_CREATE`: Create organizations
+    - `ORGANIZATION_READ`: Read user's organizations
+    - `ORGANIZATION_WRITE`: Edit organizations
+  </Accordion>
+</AccordionGroup>
+
+### Scope Format
+
+In OAuth URLs, separate scopes with spaces or `+`:
+```
+scope=USER_READ+PROJECT_READ+VERSION_CREATE
+```
+
+When creating PATs, select scopes from the web interface.
+
+### Restricted Scopes
+
+Some scopes are restricted and cannot be used in PATs:
+- `USER_DELETE`
+- `USER_AUTH_WRITE`
+- `PAT_CREATE`, `PAT_READ`, `PAT_WRITE`, `PAT_DELETE`
+- `SESSION_READ`, `SESSION_DELETE`, `SESSION_ACCESS`
+
+These operations can only be performed through Modrinth's frontend for security reasons.
+
+## Token Security Best Practices
+
+<Warning>
+Never expose tokens in client-side code, public repositories, or logs.
+</Warning>
+
+### Storage
+- **Server-side**: Store in environment variables or secure credential management systems
+- **Client-side**: Store OAuth tokens in secure, HttpOnly cookies or encrypted storage
+- **Never** commit tokens to version control
+
+### Transmission
+- Always use HTTPS for API requests
+- Never send tokens in URL parameters
+- Only send tokens in the `Authorization` header
+
+### Rotation
+- Rotate PATs periodically
+- Revoke tokens immediately if compromised
+- Use separate tokens for different applications
+- Set appropriate expiration times
+
+### Principle of Least Privilege
+- Request only the scopes your application needs
+- Create separate tokens for different use cases
+- Use read-only scopes when possible
+
+## GitHub Token Compatibility (Deprecated)
+
+<Warning>
+GitHub tokens are deprecated and will cease to function when API v3 becomes generally available. Migrate to PATs or OAuth immediately.
+</Warning>
+
+For backwards compatibility, some GitHub tokens still work with Modrinth's API, granting all scopes. This is strongly discouraged for security and reliability.
+
+## Authentication Errors
+
+### 401 Unauthorized
+
+Your request lacks valid authentication credentials:
+
+```json
+{
+  "error": "unauthorized",
+  "description": "Invalid authentication credentials"
+}
+```
+
+**Common causes:**
+- Missing `Authorization` header
+- Invalid or expired token
+- Revoked token
+
+### 403 Forbidden
+
+Your token is valid but lacks the required scope:
+
+```json
+{
+  "error": "unauthorized",
+  "description": "Token does not have the required scope: PROJECT_WRITE"
+}
+```
+
+**Solution**: Create a new token with the required scopes.
+
+## Example: Complete OAuth Implementation
+
+```javascript
+// Step 1: Redirect to authorization
+function initiateOAuth() {
+  const clientId = 'YOUR_CLIENT_ID';
+  const redirectUri = 'https://yourapp.com/callback';
+  const scope = 'USER_READ PROJECT_READ';
+  const state = crypto.randomUUID();
+  
+  // Store state to verify later
+  sessionStorage.setItem('oauth_state', state);
+  
+  const authUrl = `https://api.modrinth.com/v2/_internal/oauth/authorize?` +
+    `client_id=${clientId}&` +
+    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+    `scope=${encodeURIComponent(scope)}&` +
+    `state=${state}`;
+  
+  window.location.href = authUrl;
+}
+
+// Step 2: Handle callback
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  
+  // Verify state
+  if (state !== sessionStorage.getItem('oauth_state')) {
+    throw new Error('Invalid state parameter');
+  }
+  
+  // Exchange code for token (do this server-side!)
+  const response = await fetch('https://api.modrinth.com/v2/_internal/oauth/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      client_id: 'YOUR_CLIENT_ID',
+      client_secret: 'YOUR_CLIENT_SECRET',
+      code: code,
+      redirect_uri: 'https://yourapp.com/callback'
+    })
+  });
+  
+  const { access_token } = await response.json();
+  return access_token;
+}
+
+// Step 3: Make authenticated requests
+async function getUser(accessToken) {
+  const response = await fetch('https://api.modrinth.com/v2/user', {
+    headers: {
+      'Authorization': accessToken,
+      'User-Agent': 'my-app/1.0.0'
+    }
+  });
+  
+  return await response.json();
+}
+```
+
+## Further Reading
+
+<CardGroup cols={2}>
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits">
+    Learn about request limits and headers
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api/errors">
+    Handle authentication and authorization errors
+  </Card>
+</CardGroup>

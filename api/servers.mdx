@@ -1,0 +1,500 @@
+---
+title: 'Server Management'
+description: 'API endpoints for managing Modrinth Hosting servers'
+---
+
+## Overview
+
+The Server API provides endpoints for managing Modrinth Hosting servers, including creation, configuration, power management, and console access. All endpoints require authentication via JWT token.
+
+## Authentication
+
+All server API requests must include an Authorization header:
+
+```javascript
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+## Endpoints
+
+### Get Server
+
+Retrieve detailed information about a specific server.
+
+```javascript
+const server = await client.archon.servers_v0.get(serverId)
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ResponseField name="server_id" type="string">
+  Unique server identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Server display name
+</ResponseField>
+
+<ResponseField name="owner_id" type="string">
+  User ID of the server owner
+</ResponseField>
+
+<ResponseField name="net" type="object">
+  Network configuration
+  <ResponseField name="ip" type="string">
+    Server IP address
+  </ResponseField>
+  <ResponseField name="port" type="number">
+    Server port number
+  </ResponseField>
+  <ResponseField name="domain" type="string">
+    Server domain name
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="game" type="string">
+  Game type (e.g., "Minecraft")
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Server status: `installing`, `broken`, `available`, or `suspended`
+</ResponseField>
+
+<ResponseField name="suspension_reason" type="string | null">
+  Reason for suspension: `moderated`, `paymentfailed`, `cancelled`, `upgrading`, or `other`
+</ResponseField>
+
+<ResponseField name="loader" type="string | null">
+  Mod loader: `Forge`, `NeoForge`, `Fabric`, `Quilt`, `Purpur`, `Spigot`, `Vanilla`, or `Paper`
+</ResponseField>
+
+<ResponseField name="loader_version" type="string | null">
+  Version of the mod loader
+</ResponseField>
+
+<ResponseField name="mc_version" type="string | null">
+  Minecraft version
+</ResponseField>
+
+<ResponseField name="upstream" type="object | null">
+  Upstream modpack configuration
+  <ResponseField name="kind" type="string">
+    `modpack` or `none`
+  </ResponseField>
+  <ResponseField name="version_id" type="string">
+    Modrinth version ID
+  </ResponseField>
+  <ResponseField name="project_id" type="string">
+    Modrinth project ID
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="sftp_username" type="string">
+  SFTP username for file access
+</ResponseField>
+
+<ResponseField name="sftp_password" type="string">
+  SFTP password for file access
+</ResponseField>
+
+<ResponseField name="sftp_host" type="string">
+  SFTP host address
+</ResponseField>
+
+<ResponseField name="datacenter" type="string">
+  Datacenter location
+</ResponseField>
+
+<ResponseField name="backup_quota" type="number">
+  Maximum number of backups allowed
+</ResponseField>
+
+<ResponseField name="used_backup_quota" type="number">
+  Number of backups currently in use
+</ResponseField>
+
+<ResponseField name="is_medal" type="boolean">
+  Whether the server is a Medal (sponsored) server
+</ResponseField>
+
+<ResponseField name="medal_expires" type="string" optional>
+  ISO 8601 timestamp when Medal status expires
+</ResponseField>
+
+### List Servers
+
+Retrieve a paginated list of servers for the authenticated user.
+
+```javascript
+const { servers, pagination } = await client.archon.servers_v0.list({
+  limit: 20,
+  offset: 0
+})
+```
+
+<ParamField query="limit" type="number" optional>
+  Number of servers to return per page (default: 20)
+</ParamField>
+
+<ParamField query="offset" type="number" optional>
+  Number of servers to skip (default: 0)
+</ParamField>
+
+<ResponseField name="servers" type="array">
+  Array of server objects (see Get Server response)
+</ResponseField>
+
+<ResponseField name="pagination" type="object">
+  Pagination metadata
+  <ResponseField name="current_page" type="number">
+    Current page number
+  </ResponseField>
+  <ResponseField name="page_size" type="number">
+    Number of items per page
+  </ResponseField>
+  <ResponseField name="total_pages" type="number">
+    Total number of pages
+  </ResponseField>
+  <ResponseField name="total_items" type="number">
+    Total number of servers
+  </ResponseField>
+</ResponseField>
+
+### Check Stock Availability
+
+Check if a server configuration is available in a specific region.
+
+```javascript
+const stock = await client.archon.servers_v0.checkStock('us-east', {
+  cpu: 2,
+  memory_mb: 4096,
+  swap_mb: 1024,
+  storage_mb: 10240
+})
+```
+
+<ParamField query="region" type="string" required>
+  Region shortcode (e.g., "us-east", "eu-west")
+</ParamField>
+
+<ParamField body="cpu" type="number" optional>
+  Number of CPU cores
+</ParamField>
+
+<ParamField body="memory_mb" type="number" optional>
+  Memory in megabytes
+</ParamField>
+
+<ParamField body="swap_mb" type="number" optional>
+  Swap space in megabytes
+</ParamField>
+
+<ParamField body="storage_mb" type="number" optional>
+  Storage space in megabytes
+</ParamField>
+
+<ResponseField name="available" type="number">
+  Number of available server slots with this configuration
+</ResponseField>
+
+### Get Available Regions
+
+Retrieve a list of all available hosting regions.
+
+```javascript
+const regions = await client.archon.servers_v1.getRegions()
+```
+
+<ResponseField name="shortcode" type="string">
+  Region identifier (e.g., "us-east")
+</ResponseField>
+
+<ResponseField name="country_code" type="string">
+  ISO country code
+</ResponseField>
+
+<ResponseField name="display_name" type="string">
+  Human-readable region name
+</ResponseField>
+
+<ResponseField name="lat" type="number">
+  Latitude coordinate
+</ResponseField>
+
+<ResponseField name="lon" type="number">
+  Longitude coordinate
+</ResponseField>
+
+<ResponseField name="zone" type="string">
+  Availability zone
+</ResponseField>
+
+## Power Management
+
+### Send Power Action
+
+Control server power state.
+
+```javascript
+// Start the server
+await client.archon.servers_v0.power(serverId, 'Start')
+
+// Stop the server gracefully
+await client.archon.servers_v0.power(serverId, 'Stop')
+
+// Restart the server
+await client.archon.servers_v0.power(serverId, 'Restart')
+
+// Force kill the server
+await client.archon.servers_v0.power(serverId, 'Kill')
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="action" type="string" required>
+  Power action: `Start`, `Stop`, `Restart`, or `Kill`
+</ParamField>
+
+Power state changes are broadcast via WebSocket events (see [WebSocket API](/api/websocket)).
+
+## Console Access
+
+Server console access is provided via WebSocket connections. See the [WebSocket API documentation](/api/websocket) for details on:
+
+- Receiving real-time log output
+- Sending console commands
+- Monitoring server statistics
+
+## File Management
+
+### Get Filesystem Authentication
+
+Obtain credentials for accessing a server's filesystem via the Kyros API.
+
+```javascript
+const { url, token } = await client.archon.servers_v0.getFilesystemAuth(serverId)
+
+// Use the token with Kyros file operations
+const files = await client.kyros.files_v0.listDirectory('/', 1, 100)
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ResponseField name="url" type="string">
+  Base URL for Kyros filesystem API (e.g., "node-xyz.modrinth.com/modrinth/v0/fs")
+</ResponseField>
+
+<ResponseField name="token" type="string">
+  JWT token for authenticating filesystem requests
+</ResponseField>
+
+The token is automatically used by the Kyros file API when you call methods like:
+
+- `listDirectory()` - Browse files and folders
+- `uploadFile()` - Upload files with progress tracking
+- `downloadFile()` - Download files
+- `createFileOrFolder()` - Create new files/directories
+- `deleteFileOrFolder()` - Delete files/directories
+- `moveFileOrFolder()` - Move or rename files
+- `updateFile()` - Update file contents
+
+See the Kyros Files API documentation for complete file management capabilities.
+
+## Installing Mods
+
+### List Installed Mods
+
+Get a list of all mods installed on a server.
+
+```javascript
+const mods = await client.archon.content_v0.list(serverId)
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ResponseField name="filename" type="string">
+  Mod file name
+</ResponseField>
+
+<ResponseField name="project_id" type="string | undefined">
+  Modrinth project ID
+</ResponseField>
+
+<ResponseField name="version_id" type="string | undefined">
+  Modrinth version ID
+</ResponseField>
+
+<ResponseField name="name" type="string | undefined">
+  Mod display name
+</ResponseField>
+
+<ResponseField name="version_number" type="string | undefined">
+  Mod version number
+</ResponseField>
+
+<ResponseField name="icon_url" type="string | undefined">
+  URL to mod icon image
+</ResponseField>
+
+<ResponseField name="owner" type="string | undefined">
+  Mod author/owner
+</ResponseField>
+
+<ResponseField name="disabled" type="boolean">
+  Whether the mod is disabled
+</ResponseField>
+
+<ResponseField name="installing" type="boolean">
+  Whether the mod is currently being installed
+</ResponseField>
+
+### Install a Mod
+
+Install a mod or plugin from Modrinth.
+
+```javascript
+await client.archon.content_v0.install(serverId, {
+  rinth_ids: {
+    project_id: 'P7dR8mSH',
+    version_id: 'abc123'
+  },
+  install_as: 'mod'
+})
+
+// Listen for installation result via WebSocket
+const unsub = client.archon.sockets.on(serverId, 'installation-result', (event) => {
+  if (event.result === 'ok') {
+    console.log('Mod installed successfully')
+  } else {
+    console.error('Installation failed:', event.reason)
+  }
+})
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="rinth_ids.project_id" type="string" required>
+  Modrinth project ID
+</ParamField>
+
+<ParamField body="rinth_ids.version_id" type="string" required>
+  Modrinth version ID
+</ParamField>
+
+<ParamField body="install_as" type="string" required>
+  Content type: `mod` or `plugin`
+</ParamField>
+
+Installation progress is broadcast via WebSocket `installation-result` events.
+
+### Update a Mod
+
+Update an existing mod to a new version.
+
+```javascript
+await client.archon.content_v0.update(serverId, {
+  replace: '/mods/sodium-0.5.0.jar',
+  project_id: 'AANobbMI',
+  version_id: 'new-version-id'
+})
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="replace" type="string" required>
+  Path to the existing mod file to replace
+</ParamField>
+
+<ParamField body="project_id" type="string" required>
+  Modrinth project ID
+</ParamField>
+
+<ParamField body="version_id" type="string" required>
+  New Modrinth version ID
+</ParamField>
+
+### Delete a Mod
+
+Remove a mod from the server.
+
+```javascript
+await client.archon.content_v0.delete(serverId, {
+  path: '/mods/example-mod.jar'
+})
+```
+
+<ParamField path="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="path" type="string" required>
+  Path to the mod file to delete
+</ParamField>
+
+## Example: Complete Server Setup
+
+```javascript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+// Initialize client
+const client = new GenericModrinthClient({
+  token: 'your-auth-token'
+})
+
+// Get server details
+const server = await client.archon.servers_v0.get('server-id')
+console.log(`Server: ${server.name} (${server.status})`)
+
+// Start the server
+await client.archon.servers_v0.power(server.server_id, 'Start')
+
+// Connect to WebSocket for real-time updates
+await client.archon.sockets.safeConnect(server.server_id)
+
+// Listen for power state changes
+const unsubPower = client.archon.sockets.on(server.server_id, 'power-state', (event) => {
+  console.log(`Power state: ${event.state}`)
+})
+
+// Listen for console logs
+const unsubLogs = client.archon.sockets.on(server.server_id, 'log', (event) => {
+  console.log(`[${event.stream}] ${event.message}`)
+})
+
+// Send a console command
+client.archon.sockets.send(server.server_id, {
+  event: 'command',
+  cmd: '/say Hello from API!'
+})
+
+// Install a mod
+await client.archon.content_v0.install(server.server_id, {
+  rinth_ids: {
+    project_id: 'P7dR8mSH',
+    version_id: 'abc123'
+  },
+  install_as: 'mod'
+})
+
+// Clean up
+unsubPower()
+unsubLogs()
+client.archon.sockets.disconnect(server.server_id)
+```
+
+## Related Documentation
+
+- [WebSocket API](/api/websocket) - Real-time server events and console access
+- [Backups API](/api/backups) - Server backup management

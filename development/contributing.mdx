@@ -1,0 +1,194 @@
+---
+title: Contributing to Modrinth
+description: Learn how to contribute to the Modrinth monorepo
+---
+
+## Welcome Contributors
+
+Welcome to the Modrinth Monorepo! This repository contains ![Lines](https://img.shields.io/endpoint?url=https://ghloc.vercel.app/api/modrinth/code/badge?logoColor=white&color=black&label=) lines of code and has ![Contributors](https://img.shields.io/github/contributors/Modrinth/code?color=black&label=) contributors.
+
+We welcome contributions of all kinds - bug fixes, new features, documentation improvements, and more. This guide will help you get started.
+
+## Before You Contribute
+
+Before submitting any contributions, please:
+
+1. Read our [Getting Started](/development/getting-started) guide to set up your development environment
+2. Review our [Code Style](/development/code-style) guidelines
+3. Check existing [issues](https://github.com/modrinth/code/issues) and [pull requests](https://github.com/modrinth/code/pulls) to avoid duplicates
+
+## How to Contribute
+
+<Steps>
+  <Step title="Find or Create an Issue">
+    Browse the [issue tracker](https://github.com/modrinth/code/issues) for something to work on, or create a new issue to discuss your idea.
+    
+    For major changes, please open an issue first to discuss what you would like to change.
+  </Step>
+  
+  <Step title="Fork and Clone">
+    Fork the repository and clone it to your local machine:
+    
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/code.git
+    cd code
+    ```
+  </Step>
+  
+  <Step title="Create a Branch">
+    Create a new branch for your changes:
+    
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+    
+    Use descriptive branch names:
+    - `feature/` for new features
+    - `fix/` for bug fixes
+    - `docs/` for documentation
+    - `refactor/` for code refactoring
+  </Step>
+  
+  <Step title="Make Your Changes">
+    Make your changes following our [code style guidelines](/development/code-style).
+    
+    - Write clear, self-documenting code
+    - Add tests for new features
+    - Update documentation as needed
+  </Step>
+  
+  <Step title="Test Your Changes">
+    Before committing, ensure your changes work:
+    
+    **For Frontend (Web/App):**
+    ```bash
+    pnpm prepr
+    ```
+    
+    **For Backend (Labrinth):**
+    ```bash
+    cd apps/labrinth
+    cargo clippy -p labrinth --all-targets
+    cargo sqlx prepare
+    ```
+  </Step>
+  
+  <Step title="Commit Your Changes">
+    Follow our [commit message format](/development/code-style#commit-message-format):
+    
+    ```bash
+    git add .
+    git commit -m "feat: add new feature description"
+    ```
+  </Step>
+  
+  <Step title="Push and Create PR">
+    Push your branch and create a pull request:
+    
+    ```bash
+    git push origin feature/your-feature-name
+    ```
+    
+    Go to GitHub and create a pull request with a clear description of your changes.
+  </Step>
+</Steps>
+
+## Issue Reporting
+
+### Bug Reports
+
+When reporting bugs, please include:
+
+- **Clear description** of the issue
+- **Steps to reproduce** the problem
+- **Expected behavior** vs actual behavior
+- **Environment details** (OS, browser, app version)
+- **Screenshots or logs** if applicable
+
+### Feature Requests
+
+For feature requests, please:
+
+- Explain the **use case** and **problem** it solves
+- Describe the **proposed solution**
+- Consider **alternatives** you've thought about
+- Note any **breaking changes** or compatibility concerns
+
+## Pull Request Process
+
+### PR Guidelines
+
+1. **One feature per PR** - Keep pull requests focused on a single feature or fix
+2. **Update documentation** - Include any necessary documentation updates
+3. **Add tests** - New features should include appropriate tests
+4. **Follow code style** - Run formatters and linters before submitting
+5. **Describe your changes** - Write a clear PR description explaining what and why
+
+### PR Checklist
+
+Before submitting your PR, ensure:
+
+- [ ] Code follows the style guidelines
+- [ ] All tests pass
+- [ ] No linting errors (zero warnings required)
+- [ ] Documentation is updated
+- [ ] Commit messages follow the format
+- [ ] No merge conflicts with main branch
+
+### Review Process
+
+1. A maintainer will review your PR
+2. Address any requested changes
+3. Once approved, a maintainer will merge your PR
+4. Your contribution will be included in the next release
+
+## Code of Conduct
+
+We expect all contributors to:
+
+- **Be respectful** and professional
+- **Welcome newcomers** and help them learn
+- **Give constructive feedback** in reviews
+- **Focus on the code**, not the person
+- **Assume good intentions** from others
+
+### Unacceptable Behavior
+
+- Harassment, discrimination, or hate speech
+- Trolling, insulting comments, or personal attacks
+- Publishing others' private information
+- Any conduct that creates an unsafe environment
+
+## Community Channels
+
+Connect with the Modrinth community:
+
+- **Discord**: [discord.modrinth.com](https://discord.modrinth.com) - Chat with the community and developers
+- **Support**: [support.modrinth.com](https://support.modrinth.com) - Get help with issues
+- **GitHub Discussions**: Ask questions and share ideas
+- **Twitter**: [@modrinth](https://twitter.com/modrinth) - Follow for updates
+
+## Security Issues
+
+If you discover a security vulnerability, **do not open a public issue**. Please follow our [responsible disclosure guidelines](https://modrinth.com/legal/security) instead.
+
+## License Considerations
+
+All packages in this repository are licensed under their respective licenses. By contributing, you agree that your contributions will be licensed under the same license as the package you're contributing to.
+
+Refer to the LICENSE file in each package for more information.
+
+If you plan to fork this repository for your own purposes, please review our [copying guidelines](https://github.com/modrinth/code/blob/main/COPYING.md).
+
+## Getting Help
+
+If you need help contributing:
+
+- Check the [Getting Started](/development/getting-started) guide
+- Ask in the `#development` channel on Discord
+- Comment on the relevant issue or PR
+- Review existing code for examples
+
+## Recognition
+
+All contributors are recognized in our repository. Thank you for making Modrinth better!

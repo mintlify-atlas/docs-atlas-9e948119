@@ -1,80 +1,415 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quickstart Guide"
+description: "Get started with Modrinth in minutes - from account creation to launching your first modded Minecraft instance"
 ---
 
-## Get started in three steps
+This guide will walk you through everything you need to start using Modrinth, from creating an account to launching Minecraft with mods.
 
-Get your documentation site running locally and make your first customization.
+## Step 1: Create Your Account
 
-### Step 1: Set up your local environment
+Head to [modrinth.com](https://modrinth.com) and create a free account.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+<Steps>
+  <Step title="Sign up">
+    Click **Sign up** in the top right corner and choose your preferred authentication method:
+    - Email and password
+    - GitHub
+    - Discord
+    - Microsoft
+    - GitLab
+    - Google
+  </Step>
+  <Step title="Complete your profile">
+    Add a username and profile picture to personalize your Modrinth experience.
+  </Step>
+</Steps>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+You can browse and search for mods without an account, but you'll need one to use the Modrinth App, upload projects, or manage favorites.
 </Note>
+
+## Step 2: Choose Your Platform
+
+Modrinth offers two ways to discover and install content:
+
+<Tabs>
+  <Tab title="Modrinth App (Recommended)">
+    The Modrinth App is a desktop launcher that provides the best experience for managing Minecraft instances and mods.
+
+    ### Download the App
+
+    1. Visit [modrinth.com/app](https://modrinth.com/app)
+    2. Download the installer for your operating system:
+       - **Windows**: `.exe` installer
+       - **macOS**: `.dmg` for Intel or `.dmg` for Apple Silicon
+       - **Linux**: `.AppImage`, `.deb`, or `.rpm`
+    3. Run the installer and follow the setup wizard
+
+    <Note>
+    The Modrinth App is built with Tauri and runs natively on Windows, macOS (Intel and Apple Silicon), and Linux.
+    </Note>
+
+    ### First Launch
+
+    When you first open the Modrinth App:
+    1. **Sign in** with your Modrinth account
+    2. **Set up your Minecraft installation directory** (the app will auto-detect common locations)
+    3. **Allow the app to download Java** if needed (the app automatically manages Java versions for different Minecraft releases)
+
+    The app will create a default instance or you can create a new one immediately.
+  </Tab>
+  <Tab title="Web Interface">
+    The web interface at [modrinth.com](https://modrinth.com) lets you browse and download mods for manual installation.
+
+    ### Using the Web Interface
+
+    1. **Browse** by category or use the search bar
+    2. **Click** on a mod to view its project page
+    3. **Download** the version compatible with your Minecraft installation
+    4. **Manually install** by copying the `.jar` file to your `mods` folder
+
+    <Warning>
+    Manual installation requires you to:
+    - Match Minecraft versions exactly
+    - Download all dependencies separately
+    - Ensure mod loader compatibility (Fabric, Forge, etc.)
+    - Manually update mods when new versions are released
+
+    We recommend using the Modrinth App for automatic dependency management.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Step 3: Create Your First Instance
+
+<Note>
+This section assumes you're using the Modrinth App. If you're using the web interface only, you can browse and download mods from the website and install them manually.
+</Note>
+
+Instances are self-contained Minecraft installations with their own mods, game version, and settings.
+
+<Steps>
+  <Step title="Open the Instances view">
+    Click **Library** in the sidebar or press `Ctrl+1` (Windows/Linux) or `Cmd+1` (macOS).
+  </Step>
+  <Step title="Create a new instance">
+    Click the **+ Create Instance** button or press `Ctrl+N` / `Cmd+N`.
+  </Step>
+  <Step title="Configure your instance">
+    Choose your setup:
+
+    <Tabs>
+      <Tab title="From Modpack">
+        1. Search for a modpack in the browse window
+        2. Select the modpack you want to install
+        3. Choose the modpack version
+        4. Click **Create**
+
+        The app will automatically:
+        - Download all required mods
+        - Set the correct Minecraft version
+        - Configure the mod loader (Fabric, Forge, Quilt, or NeoForge)
+        - Install dependencies
+      </Tab>
+      <Tab title="Vanilla or Custom">
+        1. Enter an **instance name**
+        2. Select the **Minecraft version** (e.g., 1.20.1, 1.21)
+        3. Choose a **mod loader**:
+           - **Vanilla** - No mods
+           - **Fabric** - Lightweight, modern mod loader
+           - **Forge** - Traditional mod loader with broad compatibility
+           - **Quilt** - Fork of Fabric with enhanced features
+           - **NeoForge** - Modern fork of Forge
+        4. Click **Create**
+
+        <Note>
+        The app will automatically download the selected Minecraft version and mod loader. Java is also automatically downloaded if needed.
+        </Note>
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+### Understanding Instance Settings
+
+After creating an instance, you can customize:
+
+- **Memory allocation**: Set minimum and maximum RAM
+- **Java arguments**: Add custom JVM flags
+- **Resolution**: Set default window size
+- **Game directory**: Change where saves and configs are stored
+- **Mod loader version**: Update or pin the loader version
+
+<CodeGroup>
+
+```rust Instance Configuration (app-lib)
+pub struct Profile {
+    pub name: String,
+    pub game_version: String,
+    pub loader: ModLoader,
+    pub loader_version: Option<String>,
+    pub java_path: Option<String>,
+    pub memory: MemorySettings,
+    pub resolution: WindowSize,
+    // ... additional fields
+}
+```
+
+```typescript Profile in API
+interface Instance {
+  game_version: string
+  loader: 'vanilla' | 'fabric' | 'forge' | 'quilt' | 'neoforge'
+  path: string
+  install_stage: string
+  name: string
+  linked_data?: {
+    project_id: string
+    version_id: string
+    locked: boolean
+  }
+}
+```
+
+</CodeGroup>
+
+## Step 4: Find and Install Mods
+
+<Tabs>
+  <Tab title="In the Modrinth App">
+    ### Browse Mods for Your Instance
+
+    <Steps>
+      <Step title="Navigate to Browse">
+        Click **Browse** in the sidebar or press `Ctrl+2` / `Cmd+2`.
+      </Step>
+      <Step title="Select your instance (optional)">
+        Click the **Instance selector** dropdown at the top to filter mods for a specific instance.
+
+        When an instance is selected, the app automatically:
+        - Filters by the instance's Minecraft version
+        - Shows only compatible mod loaders
+        - Marks already installed mods
+        - Hides incompatible content
+      </Step>
+      <Step title="Search and filter">
+        - Use the **search bar** to find specific mods
+        - Click **Mods**, **Resource Packs**, **Shaders**, etc. to browse categories
+        - Apply **filters** from the sidebar:
+          - Categories (Technology, Magic, Adventure, etc.)
+          - Minecraft version
+          - Mod loader
+          - Environment (Client, Server, or Both)
+        - Sort by **Relevance**, **Downloads**, **Recently Updated**, or **Newest**
+      </Step>
+      <Step title="Install a mod">
+        Click on a mod to view details, then:
+        1. Review the mod description and screenshots
+        2. Check the **Dependencies** tab to see what else will be installed
+        3. Click **Install** or **Add to Instance**
+        4. Select the instance to install to (if not pre-selected)
+        5. Click **Confirm**
+
+        The app will:
+        - Download the mod and all required dependencies
+        - Verify compatibility with your instance
+        - Show a loading bar during installation
+        - Mark the mod as installed when complete
+      </Step>
+    </Steps>
+
+    ### Example: Installing Fabric API
+
+    Fabric API is a required dependency for most Fabric mods.
+
+    <Steps>
+      <Step title="Search for 'Fabric API'">
+        Type `fabric api` in the search bar.
+      </Step>
+      <Step title="Click on the Fabric API project">
+        You'll see:
+        - Over 400M downloads
+        - Compatible with all Fabric-based Minecraft versions
+        - Required by thousands of mods
+      </Step>
+      <Step title="Click Install">
+        The app automatically selects the correct version for your instance's Minecraft version.
+      </Step>
+    </Steps>
+
+    <Tip>
+    Enable **Hide installed content** in the sidebar to focus on mods you don't have yet.
+    </Tip>
+  </Tab>
+  <Tab title="On the Web">
+    ### Manual Installation
+
+    <Steps>
+      <Step title="Search on modrinth.com">
+        Use the search bar or browse categories to find a mod.
+      </Step>
+      <Step title="Check compatibility">
+        On the project page:
+        - Verify the **mod loader** (Fabric, Forge, etc.)
+        - Check supported **Minecraft versions**
+        - Review the **Dependencies** section
+      </Step>
+      <Step title="Download the correct version">
+        1. Click the **Versions** tab
+        2. Find the version matching your Minecraft version and mod loader
+        3. Click **Download**
+        4. Repeat for all dependencies
+      </Step>
+      <Step title="Install manually">
+        1. Locate your Minecraft installation directory:
+           - Windows: `%appdata%\.minecraft`
+           - macOS: `~/Library/Application Support/minecraft`
+           - Linux: `~/.minecraft`
+        2. Copy downloaded `.jar` files to the `mods` folder
+        3. Restart Minecraft
+      </Step>
+    </Steps>
+
+    <Warning>
+    Make sure you download **all dependencies**. Missing dependencies will cause crashes on startup.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Step 5: Launch Minecraft
+
+<Tabs>
+  <Tab title="From the Modrinth App">
+    <Steps>
+      <Step title="Select your instance">
+        Go to the **Library** view and click on the instance you want to launch.
+      </Step>
+      <Step title="Click Play">
+        Click the **Play** button (or press `Enter`).
+
+        The app will:
+        1. Verify all mods are installed
+        2. Check for the correct Java version
+        3. Download Java if needed
+        4. Launch Minecraft with the configured mods
+      </Step>
+      <Step title="Wait for Minecraft to load">
+        The first launch may take longer as Minecraft loads all mods. You'll see:
+        - A loading screen with progress
+        - Mod initialization messages in the console (optional)
+        - The Minecraft main menu when ready
+      </Step>
+    </Steps>
+
+    <Note>
+    The Modrinth App stays running in the background while Minecraft is open. You can monitor console output or close the app after Minecraft launches.
+    </Note>
+
+    ### Launch Options
+
+    Right-click an instance to access advanced options:
+    - **Quick Play** - Join a specific world or server on launch
+    - **Edit** - Modify instance settings
+    - **Duplicate** - Create a copy of the instance
+    - **Export** - Package as a `.mrpack` modpack file
+  </Tab>
+  <Tab title="Manual Launch">
+    If you installed mods manually:
+
+    1. Launch Minecraft through your existing launcher
+    2. Select the profile with the correct mod loader (Fabric, Forge, etc.)
+    3. Click **Play**
+    4. Verify mods loaded by checking the **Mods** menu in-game
+  </Tab>
+</Tabs>
+
+## What's Next?
+
+Now that you've installed your first mods, explore more features:
+
+<CardGroup cols={2}>
+  <Card title="Manage Instances" icon="folder" href="/platform/desktop-app">
+    Learn about advanced instance features like exports, backups, and mod updates.
+  </Card>
+  <Card title="Server Hosting" icon="server" href="/hosting/getting-started">
+    Host Minecraft servers on Modrinth with automatic backups and management tools.
+  </Card>
+  <Card title="Creating Modpacks" icon="box" href="/players/creating-modpacks">
+    Package your favorite mods into a shareable modpack and publish it on Modrinth.
+  </Card>
+  <Card title="Explore the API" icon="code" href="/api/overview">
+    Build integrations with the Labrinth REST API or use the official client libraries.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Minecraft won't launch">
+    **Possible causes:**
+    - Incompatible mod versions
+    - Missing dependencies
+    - Insufficient memory allocation
+    - Java version mismatch
+
+    **Solutions:**
+    1. Check the **Console** tab in the Modrinth App for error messages
+    2. Verify all mods are compatible with your Minecraft version
+    3. Increase memory allocation in instance settings (recommended: 4GB+)
+    4. Let the app download the correct Java version automatically
+  </Accordion>
+  <Accordion title="Mods aren't loading">
+    **Possible causes:**
+    - Wrong mod loader selected
+    - Mods in the wrong directory
+    - Disabled mods
+
+    **Solutions:**
+    1. Verify the instance is using the correct mod loader (Fabric, Forge, etc.)
+    2. Check the **Mods** tab in the instance view to see installed mods
+    3. Enable any disabled mods by clicking the toggle
+    4. Ensure `.jar` files are in the instance's `mods` folder
+  </Accordion>
+  <Accordion title="Can't find a specific mod">
+    **Possible causes:**
+    - Mod not available on Modrinth
+    - Search filters excluding the mod
+    - Instance version incompatibility
+
+    **Solutions:**
+    1. Clear all filters and search again
+    2. Check if the mod exists on [modrinth.com](https://modrinth.com)
+    3. Try searching by the mod's ID or slug
+    4. Some mods may only be available on CurseForge or other platforms
+  </Accordion>
+  <Accordion title="App won't sign in">
+    **Possible causes:**
+    - Network connectivity issues
+    - Browser not opening for OAuth
+    - Firewall blocking authentication
+
+    **Solutions:**
+    1. Check your internet connection
+    2. Manually open the authentication URL in your browser
+    3. Allow the Modrinth App through your firewall
+    4. Try a different authentication provider (GitHub, Discord, etc.)
+  </Accordion>
+</AccordionGroup>
+
+## Get Help
+
+Need more assistance?
+
+<CardGroup cols={2}>
+  <Card title="Support Center" icon="life-ring" href="https://support.modrinth.com">
+    Search the knowledge base or submit a support ticket.
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.modrinth.com">
+    Join thousands of users and get help from the community.
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/modrinth/code/issues">
+    Report bugs or request features on GitHub.
+  </Card>
+  <Card title="Documentation" icon="book" href="/">
+    Explore the full documentation for detailed guides and API references.
+  </Card>
+</CardGroup>

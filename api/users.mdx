@@ -1,0 +1,452 @@
+---
+title: "Users API"
+description: "API endpoints for managing user profiles and user-related data"
+---
+
+## Get Current User
+
+Get the authenticated user's profile. Requires authentication.
+
+```http
+GET /v3/user
+```
+
+### Required Scopes
+- `USER_READ` - Basic user information
+- `USER_READ_EMAIL` - Include email address
+- `PAYOUTS_READ` - Include payout data
+
+### Response
+
+<ResponseField name="id" type="string">
+  The user's unique ID
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  The user's username
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email (only if USER_READ_EMAIL scope)
+</ResponseField>
+
+<ResponseField name="bio" type="string">
+  User's biography (max 160 characters)
+</ResponseField>
+
+<ResponseField name="avatar_url" type="string">
+  URL to user's avatar image
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp of account creation
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  User role: `admin`, `moderator`, or `developer`
+</ResponseField>
+
+<ResponseField name="badges" type="integer">
+  Bitfield of user badges
+</ResponseField>
+
+<ResponseField name="payout_data" type="object">
+  Payout information (only if PAYOUTS_READ scope)
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "id": "9dU94F4T",
+  "username": "jellysquid",
+  "email": "user@example.com",
+  "bio": "Performance mod developer",
+  "avatar_url": "https://cdn.modrinth.com/avatars/9dU94F4T.png",
+  "created": "2020-01-01T00:00:00Z",
+  "role": "developer",
+  "badges": 1
+}
+```
+
+---
+
+## Get User
+
+Get a user's public profile by ID or username.
+
+```http
+GET /v3/user/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username
+</ParamField>
+
+### Response
+
+Returns public user information (same structure as authenticated user, but without private fields like email unless you're an admin).
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid
+```
+
+---
+
+## Get Multiple Users
+
+Retrieve multiple users by their IDs or usernames.
+
+```http
+GET /v3/users?ids=["id1","id2"]
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of user IDs or usernames as a string
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/users?ids=["jellysquid","modmuss50"]'
+```
+
+---
+
+## Get User by Email (Admin)
+
+Get a user by their email address. Requires admin privileges.
+
+```http
+GET /v3/user_email?email=user@example.com
+```
+
+### Query Parameters
+
+<ParamField query="email" type="string" required>
+  The user's email address
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/user_email?email=user@example.com' \
+  -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
+---
+
+## Update User
+
+Update a user's profile. Requires authentication and `USER_WRITE` scope.
+
+```http
+PATCH /v3/user/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username (must be your own unless you're a moderator)
+</ParamField>
+
+### Request Body
+
+<ParamField body="username" type="string">
+  New username (1-39 characters, must match regex pattern)
+</ParamField>
+
+<ParamField body="bio" type="string">
+  New bio (max 160 characters, or null to clear)
+</ParamField>
+
+<ParamField body="role" type="string">
+  New role (admin only)
+</ParamField>
+
+<ParamField body="badges" type="integer">
+  New badges bitfield (admin only)
+</ParamField>
+
+<ParamField body="venmo_handle" type="string">
+  Venmo handle for payouts (requires PAYOUTS_WRITE scope)
+</ParamField>
+
+<ParamField body="allow_friend_requests" type="boolean">
+  Whether to allow friend requests
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/user/jellysquid \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bio": "Minecraft optimization expert",
+    "allow_friend_requests": true
+  }'
+```
+
+---
+
+## Delete User
+
+Delete a user account. Requires authentication and `USER_DELETE` scope.
+
+```http
+DELETE /v3/user/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username (must be your own unless you're an admin)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/user/my-username \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get User's Projects
+
+Get all projects created by a user.
+
+```http
+GET /v3/user/{user_id}/projects
+```
+
+### Path Parameters
+
+<ParamField path="user_id" type="string" required>
+  User ID or username
+</ParamField>
+
+### Response
+
+Returns an array of projects visible to the requester.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid/projects
+```
+
+---
+
+## Get User's Collections
+
+Get all collections created by a user.
+
+```http
+GET /v3/user/{user_id}/collections
+```
+
+### Path Parameters
+
+<ParamField path="user_id" type="string" required>
+  User ID or username
+</ParamField>
+
+### Response
+
+Returns an array of collections visible to the requester.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid/collections
+```
+
+---
+
+## Get User's Organizations
+
+Get all organizations a user is a member of.
+
+```http
+GET /v3/user/{user_id}/organizations
+```
+
+### Path Parameters
+
+<ParamField path="user_id" type="string" required>
+  User ID or username
+</ParamField>
+
+### Response
+
+Returns an array of organizations with team member information.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid/organizations
+```
+
+---
+
+## Get User's Followed Projects
+
+Get projects followed by a user. Requires authentication.
+
+```http
+GET /v3/user/{id}/follows
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username (must be your own unless you're an admin)
+</ParamField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid/follows \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get User's Notifications
+
+Get notifications for a user. Requires authentication.
+
+```http
+GET /v3/user/{id}/notifications
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username (must be your own unless you're an admin)
+</ParamField>
+
+### Response
+
+Returns an array of notifications, sorted by creation date (newest first).
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid/notifications \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Update User Icon
+
+Upload a new user avatar. Requires authentication and `USER_WRITE` scope.
+
+```http
+PATCH /v3/user/{id}/icon?ext=png
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username (must be your own unless you're a moderator)
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ext" type="string" required>
+  Image file extension (png, jpg, etc.)
+</ParamField>
+
+### Request Body
+
+Raw image data (must be smaller than 256 KiB).
+
+### Example Request
+
+```bash
+curl -X PATCH 'https://api.modrinth.com/v3/user/jellysquid/icon?ext=png' \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: image/png" \
+  --data-binary '@avatar.png'
+```
+
+---
+
+## Delete User Icon
+
+Delete a user's avatar. Requires authentication and `USER_WRITE` scope.
+
+```http
+DELETE /v3/user/{id}/icon
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username (must be your own unless you're a moderator)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/user/jellysquid/icon \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get User's OAuth Applications
+
+Get OAuth applications created by a user. Requires authentication.
+
+```http
+GET /v3/user/{id}/oauth_apps
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  User ID or username
+</ParamField>
+
+---
+
+## Common Use Cases
+
+**User Profile Management**
+1. Get current user with `GET /v3/user`
+2. Update bio, username, or settings with `PATCH /v3/user/{id}`
+3. Upload avatar with `PATCH /v3/user/{id}/icon`
+
+**Discovering User Content**
+1. Get user's projects: `GET /v3/user/{id}/projects`
+2. Get user's collections: `GET /v3/user/{id}/collections`
+3. Get user's organizations: `GET /v3/user/{id}/organizations`
+
+**User Roles**
+- `admin` - Full platform access
+- `moderator` - Can moderate content and users
+- `developer` - Standard user account
+
+**Privacy Considerations**
+- Email addresses are only visible to the user themselves or admins
+- Followed projects are only visible to the user or admins
+- Notifications are private to each user
+- Some profile fields may be hidden based on user preferences

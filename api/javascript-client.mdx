@@ -1,0 +1,506 @@
+---
+title: JavaScript/TypeScript Client
+description: Platform-agnostic API client for Modrinth's services supporting Node.js, browsers, Nuxt, and Tauri
+---
+
+The `@modrinth/api-client` is a flexible, type-safe API client for Modrinth's APIs (Labrinth, Kyros, and Archon). It works across Node.js, browsers, Nuxt, and Tauri with a feature system for authentication, retries, circuit breaking, and other custom request/response processing.
+
+## Installation
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install @modrinth/api-client
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @modrinth/api-client
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @modrinth/api-client
+    ```
+  </Tab>
+</Tabs>
+
+## Platform Support
+
+The client provides three platform-specific implementations:
+
+- **GenericModrinthClient** - Uses `ofetch`, works in Node.js, browsers, and workers
+- **NuxtModrinthClient** - Uses Nuxt's `$fetch`, SSR-aware, blocks uploads during SSR
+- **TauriModrinthClient** - Uses `@tauri-apps/plugin-http` for Tauri desktop apps
+
+## Creating a Client Instance
+
+<Tabs>
+  <Tab title="Generic (Node.js/Browser)">
+    ```typescript
+    import { GenericModrinthClient, AuthFeature } from '@modrinth/api-client'
+
+    const client = new GenericModrinthClient({
+      userAgent: 'my-app/1.0.0',
+      features: [
+        new AuthFeature({ token: 'mrp_...' })
+      ]
+    })
+    ```
+  </Tab>
+  <Tab title="Nuxt">
+    ```typescript
+    import { NuxtModrinthClient, AuthFeature } from '@modrinth/api-client'
+
+    const client = new NuxtModrinthClient({
+      userAgent: 'my-nuxt-app/1.0.0',
+      rateLimitKey: import.meta.server ? config.rateLimitKey : undefined,
+      features: [
+        new AuthFeature({
+          token: async () => auth.value.token
+        })
+      ]
+    })
+    ```
+  </Tab>
+  <Tab title="Tauri">
+    ```typescript
+    import { TauriModrinthClient, AuthFeature } from '@modrinth/api-client'
+    import { getVersion } from '@tauri-apps/api/app'
+
+    const version = await getVersion()
+    const client = new TauriModrinthClient({
+      userAgent: `modrinth/theseus/${version} (support@modrinth.com)`,
+      features: [
+        new AuthFeature({ token: 'mrp_...' })
+      ]
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## Module Structure
+
+Modules are lazy-loaded and accessed as a nested structure organized by service:
+
+```typescript
+// Labrinth (main API)
+client.labrinth.projects_v2
+client.labrinth.projects_v3
+client.labrinth.versions_v3
+client.labrinth.collections
+client.labrinth.threads_v3
+
+// Archon (Modrinth Hosting)
+client.archon.servers_v0
+client.archon.servers_v1
+client.archon.backups_v0
+client.archon.backups_v1
+client.archon.content_v0
+
+// Kyros (file management)
+client.kyros.files_v0
+
+// ISO 3166 (country data)
+client.iso3166.data
+```
+
+## Authentication
+
+The `AuthFeature` automatically injects authentication tokens into request headers. It supports both static and dynamic tokens.
+
+<Tabs>
+  <Tab title="Static Token">
+    ```typescript
+    import { AuthFeature } from '@modrinth/api-client'
+
+    new AuthFeature({
+      token: 'mrp_...'
+    })
+    ```
+  </Tab>
+  <Tab title="Dynamic Token">
+    ```typescript
+    import { AuthFeature } from '@modrinth/api-client'
+
+    // Useful for tokens that may change
+    new AuthFeature({
+      token: async () => {
+        const auth = await getAuthState()
+        return auth.token
+      }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+### Configuration Options
+
+- `token` - Static string or async function returning a token
+- `tokenPrefix` - Token prefix (default: `'Bearer'`)
+- `headerName` - Custom header name (default: `'Authorization'`)
+
+## Making API Requests
+
+You can make requests using either the module methods or the generic `request()` method:
+
+<Tabs>
+  <Tab title="Module Methods">
+    ```typescript
+    // Get a project (type-safe)
+    const project = await client.labrinth.projects_v3.get('sodium')
+    console.log(project.project_types) // v3 field
+
+    // Get multiple projects
+    const projects = await client.labrinth.projects_v3.getMultiple(['sodium', 'lithium'])
+
+    // Get project dependencies
+    const deps = await client.labrinth.projects_v3.getDependencies('sodium')
+    ```
+  </Tab>
+  <Tab title="Generic Request">
+    ```typescript
+    // Direct API request
+    const project = await client.request('/project/sodium', {
+      api: 'labrinth',
+      version: 2
+    })
+
+    // Archon (Modrinth Hosting) request
+    const servers = await client.request('/servers?limit=10', {
+      api: 'archon',
+      version: 0
+    })
+    ```
+  </Tab>
+</Tabs>
+
+### Request Options
+
+```typescript
+interface RequestOptions {
+  api: 'labrinth' | 'archon' | 'kyros' | string  // API service or custom URL
+  version: number                                // API version
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'  // HTTP method
+  headers?: Record<string, string>               // Custom headers
+  body?: unknown                                 // Request body
+  params?: Record<string, string>                // Query parameters
+  timeout?: number                               // Request timeout
+  signal?: AbortSignal                           // Abort signal
+  skipAuth?: boolean                             // Skip authentication
+}
+```
+
+## File Uploads with Progress Tracking
+
+File uploads use `XMLHttpRequest` for progress tracking (not available via `fetch`). The `upload()` method returns an `UploadHandle`:
+
+```typescript
+interface UploadHandle<T> {
+  promise: Promise<T>
+  onProgress(callback: (progress: UploadProgress) => void): UploadHandle<T>
+  cancel(): void
+}
+```
+
+<Tabs>
+  <Tab title="Server File Upload">
+    ```typescript
+    const file = new File([...], 'world.zip')
+    const path = '/servers/my-server/world.zip'
+
+    const uploader = client.kyros.files_v0.uploadFile(path, file, {
+      onProgress: ({ progress, loaded, total }) => {
+        const percent = Math.round(progress * 100)
+        console.log(`Upload progress: ${percent}%`)
+      }
+    })
+
+    // Cancel if needed
+    // uploader.cancel()
+
+    await uploader.promise
+    console.log('Upload complete!')
+    ```
+  </Tab>
+  <Tab title="Version Creation">
+    ```typescript
+    const files = [new File([...], 'mod.jar')]
+    const draftVersion = {
+      name: 'v1.0.0',
+      version_number: '1.0.0',
+      // ... other version fields
+    }
+
+    const handle = client.labrinth.versions_v3.createVersion(
+      draftVersion,
+      files,
+      'mod'
+    )
+
+    handle.onProgress((progress) => {
+      console.log(`Upload: ${Math.round(progress.progress * 100)}%`)
+    })
+
+    const version = await handle.promise
+    console.log('Version created:', version.id)
+    ```
+  </Tab>
+</Tabs>
+
+### Upload Modes
+
+- **Single file** - `{ file: File | Blob }` sends with `Content-Type: application/octet-stream`
+- **FormData** - `{ formData: FormData }` for multipart uploads
+
+<Note>
+Uploads go through the feature chain (auth, retry, etc.). Features can detect uploads via `context.metadata.isUpload`.
+</Note>
+
+## WebSocket Usage
+
+WebSocket support is available on `GenericModrinthClient` for real-time communication with Modrinth Hosting servers.
+
+### Connecting to a Server
+
+```typescript
+import { GenericModrinthClient } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({ /* config */ })
+
+// Connect to a server's WebSocket
+await client.archon.sockets.safeConnect(serverId)
+```
+
+### Connection Flow
+
+<Steps>
+  <Step title="Fetch JWT authentication">
+    The client fetches a JWT token via `archon.servers_v0.getWebSocketAuth()`
+  </Step>
+  <Step title="Open WebSocket connection">
+    Opens a `wss://` connection to the server
+  </Step>
+  <Step title="Authenticate">
+    Sends `{ event: 'auth', jwt: token }` to authenticate
+  </Step>
+  <Step title="Receive auth confirmation">
+    Server responds with `{ event: 'auth-ok' }`
+  </Step>
+  <Step title="Ready for events">
+    Connection is ready to send commands and receive events
+  </Step>
+</Steps>
+
+### Subscribing to Events
+
+```typescript
+// Subscribe to server stats
+const unsubscribe = client.archon.sockets.on(serverId, 'stats', (data) => {
+  // data is typed as Archon.Websocket.v0.WSStatsEvent
+  console.log('CPU:', data.cpu_percent)
+  console.log('Memory:', data.memory_bytes)
+})
+
+// Subscribe to logs
+client.archon.sockets.on(serverId, 'log', (data) => {
+  console.log('[Server]', data.message)
+})
+
+// Clean up on unmount
+onUnmounted(() => {
+  unsubscribe()
+  client.archon.sockets.disconnect(serverId)
+})
+```
+
+### Available Events
+
+- `log` - Server console output
+- `stats` - Server resource usage (CPU, memory, etc.)
+- `power-state` - Server power state changes
+- `uptime` - Server uptime updates
+- `backup-progress` - Backup creation progress
+- `installation-result` - Mod installation results
+- `filesystem-ops` - File system operation events
+- `new-mod` - New mod detected
+- `auth-expiring` - Authentication expiring soon
+- `auth-incorrect` - Authentication failed
+- `auth-ok` - Authentication successful
+
+### Sending Commands
+
+```typescript
+// Send a console command
+client.archon.sockets.send(serverId, {
+  event: 'command',
+  cmd: '/say Hello from the API!'
+})
+```
+
+### Auto-Reconnection
+
+The WebSocket client automatically reconnects on unexpected disconnection with exponential backoff:
+
+- Base delay: 1 second
+- Max delay: 30 seconds
+- Max attempts: 10
+
+## TypeScript Types
+
+Types are organized in namespaces that mirror the backend services:
+
+```typescript
+import type { Labrinth, Archon, Kyros, ISO3166 } from '@modrinth/api-client'
+
+// Labrinth types
+const project: Labrinth.Projects.v3.Project = await client.labrinth.projects_v3.get('sodium')
+const version: Labrinth.Versions.v3.Version = await client.labrinth.versions_v3.get(versionId)
+
+// Archon types
+const server: Archon.Servers.v0.Server = await client.archon.servers_v0.get(serverId)
+const wsEvent: Archon.Websocket.v0.WSStatsEvent = { /* ... */ }
+
+// Kyros types
+const fileInfo: Kyros.Files.v0.FileInfo = await client.kyros.files_v0.get(path)
+```
+
+<Note>
+Types match 1:1 with the backend API responses. They are not reshaped or renamed.
+</Note>
+
+## Error Handling
+
+The client throws `ModrinthApiError` for API errors and `ModrinthServerError` for server errors:
+
+```typescript
+import { ModrinthApiError, ModrinthServerError } from '@modrinth/api-client'
+
+try {
+  const project = await client.labrinth.projects_v3.get('unknown-project')
+} catch (error) {
+  if (error instanceof ModrinthApiError) {
+    console.error('API Error:', error.status, error.message)
+    console.error('Response:', error.data)
+  } else if (error instanceof ModrinthServerError) {
+    console.error('Server Error:', error.message)
+  } else {
+    console.error('Unknown Error:', error)
+  }
+}
+```
+
+### Error Properties
+
+```typescript
+class ModrinthApiError extends Error {
+  status: number           // HTTP status code
+  statusText: string       // HTTP status text
+  data: unknown           // Response body
+  url: string             // Request URL
+  message: string         // Error message
+}
+```
+
+## Features (Middleware)
+
+Features wrap requests in a chain, allowing you to modify requests, add retry logic, or short-circuit requests.
+
+### Retry Feature
+
+Automatically retries failed requests with configurable backoff:
+
+```typescript
+import { RetryFeature } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({
+  userAgent: 'my-app/1.0.0',
+  features: [
+    new RetryFeature({
+      maxAttempts: 3,
+      backoffStrategy: 'exponential',  // 'exponential' | 'linear' | 'constant'
+      initialDelay: 1000,              // 1 second
+      maxDelay: 15000,                 // 15 seconds
+      retryableStatusCodes: [408, 429, 500, 502, 503, 504],
+      retryOnNetworkError: true
+    })
+  ]
+})
+```
+
+### Circuit Breaker Feature
+
+Prevents cascade failures by opening circuits after repeated failures:
+
+```typescript
+import { CircuitBreakerFeature, InMemoryCircuitBreakerStorage } from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({
+  userAgent: 'my-app/1.0.0',
+  features: [
+    new CircuitBreakerFeature({
+      maxFailures: 3,                  // Open after 3 consecutive failures
+      resetTimeout: 30000,             // Try again after 30 seconds
+      failureStatusCodes: [500, 502, 503, 504],
+      storage: new InMemoryCircuitBreakerStorage()
+    })
+  ]
+})
+```
+
+<Note>
+For Nuxt, use `NuxtCircuitBreakerStorage` which persists state across SSR/CSR boundaries.
+</Note>
+
+### Combining Features
+
+Features are executed in order. Common pattern:
+
+```typescript
+import { 
+  GenericModrinthClient,
+  AuthFeature,
+  RetryFeature,
+  CircuitBreakerFeature,
+  InMemoryCircuitBreakerStorage
+} from '@modrinth/api-client'
+
+const client = new GenericModrinthClient({
+  userAgent: 'my-app/1.0.0',
+  features: [
+    new AuthFeature({ token: 'mrp_...' }),
+    new RetryFeature({ maxAttempts: 3 }),
+    new CircuitBreakerFeature({ 
+      maxFailures: 5,
+      storage: new InMemoryCircuitBreakerStorage() 
+    })
+  ]
+})
+```
+
+## Custom Base URLs
+
+Override base URLs for staging environments or custom instances:
+
+```typescript
+const client = new GenericModrinthClient({
+  userAgent: 'my-app/1.0.0',
+  labrinthBaseUrl: 'https://staging-api.modrinth.com/',
+  archonBaseUrl: 'https://staging-archon.modrinth.com/',
+  features: []
+})
+
+// Now requests use staging URLs
+await client.request('/project/sodium', { api: 'labrinth', version: 2 })
+// -> https://staging-api.modrinth.com/v2/project/sodium
+```
+
+You can also use custom URLs directly in requests:
+
+```typescript
+// One-off custom URL (useful for Kyros nodes)
+await client.request('/some-endpoint', {
+  api: 'https://eu-lim16.nodes.modrinth.com/',
+  version: 0
+})
+```

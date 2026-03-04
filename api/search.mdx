@@ -1,0 +1,275 @@
+---
+title: 'Search Projects'
+description: 'Search for projects using Modrinth search engine with advanced filtering and faceting'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+The Modrinth search API allows you to search for projects (mods, modpacks, resource packs, etc.) with advanced filtering, faceting, and sorting capabilities powered by MeiliSearch.
+
+## Search Endpoint
+
+```bash
+GET /v3/search
+```
+
+Search for projects with optional query parameters for filtering and pagination.
+
+### Query Parameters
+
+<ParamField query="query" type="string">
+  Search query string. Searches across project names, descriptions, and authors.
+  
+  Example: `fabric optimization`
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of results to return per page. Maximum value is 100.
+  
+  Example: `20`
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Number of results to skip for pagination.
+  
+  Example: `40`
+</ParamField>
+
+<ParamField query="index" type="string" default="relevance">
+  The sorting method to use for results.
+  
+  **Available values:**
+  - `relevance` - Sort by relevance (default)
+  - `downloads` - Sort by download count
+  - `follows` - Sort by follower count
+  - `newest` or `date_created` - Sort by creation date
+  - `updated` or `date_modified` - Sort by last update date
+  
+  Example: `downloads`
+</ParamField>
+
+<ParamField query="new_filters" type="string">
+  Advanced filter string using MeiliSearch filter syntax. This is the recommended way to filter results.
+  
+  Example: `project_types=["mod"] AND categories=["optimization"]`
+</ParamField>
+
+<ParamField query="facets" type="string">
+  **Deprecated** - Use `new_filters` instead. JSON-encoded array for faceted search.
+  
+  Facets allow for complex AND/OR filter combinations:
+  - Outer array = AND
+  - Inner array = OR
+  - Innermost array (optional) = AND
+  
+  Example: `[["categories:fabric"], ["project_type:mod"]]`
+</ParamField>
+
+<ParamField query="filters" type="string">
+  **Deprecated** - Use `new_filters` instead. Additional filter string.
+</ParamField>
+
+<ParamField query="version" type="string">
+  **Deprecated** - Use `new_filters` instead. Version-specific filter.
+</ParamField>
+
+## Filter Syntax
+
+The `new_filters` parameter supports MeiliSearch filter syntax with the following operators:
+
+### Comparison Operators
+- `=` - Equals
+- `!=` - Not equals
+- `>`, `>=`, `<`, `<=` - Comparison (for numbers)
+- `IN [...]` - Value in array
+- `NOT IN [...]` - Value not in array
+
+### Logical Operators
+- `AND` - Logical AND
+- `OR` - Logical OR
+- `()` - Grouping
+
+### Filterable Fields
+
+<Accordion title="Project Fields">
+  - `project_types` - Array of project types (mod, modpack, resourcepack, etc.)
+  - `categories` - Array of category names
+  - `loaders` - Array of loader names (fabric, forge, quilt, etc.)
+  - `game_versions` - Array of game versions
+  - `project_id` - Project ID
+  - `author` - Author username
+  - `license` - License identifier
+  - `open_source` - Boolean for open source status
+  - `downloads` - Download count (number)
+  - `follows` - Follower count (number)
+  - `created_timestamp` - Unix timestamp of creation
+  - `modified_timestamp` - Unix timestamp of last modification
+</Accordion>
+
+<Accordion title="Component Fields">
+  For Minecraft Java servers:
+  - `minecraft_java_server.content.kind` - Content type (vanilla, modded, etc.)
+  - `minecraft_java_server.verified_plays_2w` - Verified plays in last 2 weeks
+  - `minecraft_java_server.ping.data.players_online` - Current players online
+  
+  Note: `components.` prefix is automatically normalized and removed.
+</Accordion>
+
+## Examples
+
+### Basic Search
+
+```bash
+curl "https://api.modrinth.com/v3/search?query=optimization&limit=10"
+```
+
+### Search with Filters
+
+```bash
+curl "https://api.modrinth.com/v3/search?query=fabric&new_filters=project_types%3D%5B%22mod%22%5D%20AND%20categories%3D%5B%22optimization%22%5D&limit=20"
+```
+
+### Search by Downloads
+
+```bash
+curl "https://api.modrinth.com/v3/search?index=downloads&limit=10"
+```
+
+### Complex Filter Example
+
+```bash
+curl "https://api.modrinth.com/v3/search?new_filters=(project_types%3D%5B%22mod%22%5D%20OR%20project_types%3D%5B%22modpack%22%5D)%20AND%20loaders%3D%5B%22fabric%22%5D&index=downloads"
+```
+
+### Pagination Example
+
+```bash
+curl "https://api.modrinth.com/v3/search?query=fabric&limit=20&offset=40"
+```
+
+## Response Format
+
+<ResponseField name="hits" type="array">
+  Array of project search results.
+  
+  <Expandable title="Project Object">
+    <ResponseField name="project_id" type="string">
+      The unique ID of the project (base62 encoded)
+    </ResponseField>
+    
+    <ResponseField name="slug" type="string">
+      The URL-friendly slug for the project
+    </ResponseField>
+    
+    <ResponseField name="project_types" type="string[]">
+      Array of project types (mod, modpack, resourcepack, shader, datapack, plugin)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      The project name/title
+    </ResponseField>
+    
+    <ResponseField name="author" type="string">
+      The username of the project author
+    </ResponseField>
+    
+    <ResponseField name="summary" type="string">
+      Short description of the project
+    </ResponseField>
+    
+    <ResponseField name="categories" type="string[]">
+      Array of category and loader names
+    </ResponseField>
+    
+    <ResponseField name="display_categories" type="string[]">
+      Categories to display (may differ from categories array)
+    </ResponseField>
+    
+    <ResponseField name="downloads" type="integer">
+      Total download count
+    </ResponseField>
+    
+    <ResponseField name="follows" type="integer">
+      Total follower count
+    </ResponseField>
+    
+    <ResponseField name="icon_url" type="string">
+      URL to the project icon image
+    </ResponseField>
+    
+    <ResponseField name="date_created" type="string">
+      RFC 3339 formatted creation date
+    </ResponseField>
+    
+    <ResponseField name="date_modified" type="string">
+      RFC 3339 formatted last modification date
+    </ResponseField>
+    
+    <ResponseField name="latest_version" type="string">
+      ID of the latest version
+    </ResponseField>
+    
+    <ResponseField name="license" type="string">
+      License identifier
+    </ResponseField>
+    
+    <ResponseField name="gallery" type="string[]">
+      Array of gallery image URLs
+    </ResponseField>
+    
+    <ResponseField name="featured_gallery" type="string">
+      URL of the featured gallery image
+    </ResponseField>
+    
+    <ResponseField name="color" type="integer">
+      Project accent color (extracted from icon)
+    </ResponseField>
+    
+    <ResponseField name="loaders" type="string[]">
+      Array of supported loaders
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="page" type="integer">
+  Current page number (calculated from offset and limit)
+</ResponseField>
+
+<ResponseField name="hits_per_page" type="integer">
+  Number of results per page
+</ResponseField>
+
+<ResponseField name="total_hits" type="integer">
+  Total number of matching results
+</ResponseField>
+
+## Search Tips
+
+<Accordion title="Optimizing Search Performance">
+  - Use specific queries when possible to reduce result set
+  - Leverage filters instead of broad queries
+  - Keep limit reasonable (10-50 for most use cases)
+  - Use appropriate sorting index for your needs
+</Accordion>
+
+<Accordion title="Faceted Search">
+  Faceted search allows you to combine multiple filters with AND/OR logic:
+  
+  ```json
+  [
+    [["categories:fabric"], ["categories:quilt"]],  // fabric OR quilt
+    [["project_type:mod"]]                           // AND project_type is mod
+  ]
+  ```
+  
+  The outer array combines with AND, inner arrays with OR, and optional innermost arrays with AND.
+</Accordion>
+
+<Accordion title="Component Filtering">
+  When filtering Minecraft Java server components, the `components.` prefix is automatically removed:
+  
+  - `components.minecraft_java_server.content = vanilla` becomes `minecraft_java_server.content.kind = vanilla`
+  
+  This normalization happens automatically in the filter parsing.
+</Accordion>

@@ -1,0 +1,259 @@
+---
+title: Web Interface
+description: Learn how to use the Modrinth web interface to browse projects, manage your account, and interact with the community
+---
+
+The Modrinth web interface is your gateway to discovering and managing Minecraft content. Access it at [modrinth.com](https://modrinth.com).
+
+## Browsing and Searching
+
+### Powerful Search
+
+Modrinth's lightning-fast search lets you find exactly what you need with powerful filtering options.
+
+<CardGroup cols={2}>
+  <Card title="Search Features" icon="magnifying-glass">
+    - Real-time search results as you type
+    - Filter by project type (mods, plugins, resource packs, shaders, modpacks, data packs)
+    - Sort by relevance, downloads, follows, updated date, or newest
+    - Filter by game versions, mod loaders, and categories
+    - Client/server side compatibility filters
+  </Card>
+  
+  <Card title="Discovery" icon="compass">
+    - Browse featured projects on the homepage
+    - Explore by category and tags
+    - View trending and popular projects
+    - Follow projects to get updates
+    - Discover through curated collections
+  </Card>
+</CardGroup>
+
+### Project Types
+
+Modrinth supports multiple types of Minecraft content:
+
+- **Mods** - Gameplay modifications and enhancements
+- **Plugins** - Server-side modifications for platforms like Bukkit, Spigot, Paper
+- **Resource Packs** - Visual and audio customizations
+- **Shaders** - Graphics enhancements and rendering improvements
+- **Modpacks** - Curated collections of mods and configurations
+- **Data Packs** - Vanilla-compatible gameplay modifications
+- **Servers** - Minecraft server listings
+
+## Project Pages
+
+### Version Downloads
+
+Each project page provides:
+
+<Tabs>
+  <Tab title="Overview">
+    - Project description and screenshots
+    - Download statistics and follower count
+    - Featured versions for quick access
+    - Gallery images and videos
+    - Links to source code, wiki, issue tracker, and Discord
+  </Tab>
+  
+  <Tab title="Versions">
+    - Comprehensive version history
+    - Filter by game version and loader
+    - Changelog for each release
+    - Download counts per version
+    - Dependency information
+    - File hashes for verification
+  </Tab>
+  
+  <Tab title="Gallery">
+    - Project screenshots
+    - Video demonstrations
+    - Feature highlights
+  </Tab>
+</Tabs>
+
+### Following Projects
+
+<Note>
+Follow your favorite projects to receive notifications when they update. You'll get notified about new versions, announcements, and important changes.
+</Note>
+
+Notifications include:
+- Version releases with game version compatibility
+- Changelog summaries
+- Timestamp of when you received the notification
+
+## User Profiles
+
+User profiles showcase:
+
+- **Created Projects** - All projects authored by the user
+- **Collections** - Curated lists of favorite projects
+- **Following** - Projects the user follows
+- **Badges** - Achievements and special recognitions
+
+### Collections
+
+Collections allow you to organize and share your favorite projects:
+
+<CardGroup cols={2}>
+  <Card title="Create Collections" icon="folder">
+    - Custom name and description
+    - Upload a collection icon
+    - Set visibility (public, unlisted, private)
+    - Add projects to collections
+    - Share collections with others
+  </Card>
+  
+  <Card title="Manage Collections" icon="sliders">
+    - Edit collection details
+    - Reorder projects
+    - Remove projects
+    - Change visibility settings
+    - Delete collections
+  </Card>
+</CardGroup>
+
+## Dashboard
+
+<Note>
+Sign in to access your dashboard at `/dashboard`. Requires authentication.
+</Note>
+
+### Project Management
+
+The dashboard provides comprehensive tools for managing your projects:
+
+**Projects View** (`/dashboard/projects`)
+- View all your projects in one place
+- Sort by name, status, or type
+- Bulk edit project links (issues, source, wiki, Discord)
+- Quick access to project settings
+- Project status indicators (approved, processing, rejected, draft)
+- Migration warnings for environment metadata
+
+**Collections** (`/dashboard/collections`)
+- Manage all your collections
+- Create new collections
+- Edit existing collections
+- View collection statistics
+
+**Analytics** (`/dashboard/analytics`)
+- View download statistics across all projects
+- Track page views and engagement
+- Revenue analytics for monetized projects
+- Historical data and trends
+
+### Creating Projects
+
+Click the "Create a project" button to:
+1. Choose your project type
+2. Upload project files and icon
+3. Set project details and description
+4. Configure categories and tags
+5. Add team members
+6. Publish or save as draft
+
+## Settings
+
+### Account Settings
+
+Manage your account security at `/settings/account`:
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock">
+    - Change or add email address
+    - Set up or change password
+    - Enable two-factor authentication (2FA)
+    - Manage authentication providers (GitHub, GitLab, Discord, Steam, Microsoft, Google)
+  </Card>
+  
+  <Card title="Privacy" icon="shield">
+    - Export your personal data (GDPR)
+    - Download complete data export in JSON format
+    - Delete your account permanently
+  </Card>
+</CardGroup>
+
+<Tip>
+Enable two-factor authentication for enhanced account security. Modrinth supports authenticator apps like Authy and Microsoft Authenticator.
+</Tip>
+
+### Profile Settings
+
+Customize your public profile:
+- Username and display name
+- Profile bio and description
+- Avatar and banner images
+- Social media links
+- Email preferences
+- Notification settings
+
+### Notification Preferences
+
+Control what notifications you receive:
+- Project update notifications
+- Version releases for followed projects
+- Comment replies and mentions
+- Team invitations
+- Moderation messages
+
+## Team Collaboration
+
+Projects support team management with granular permissions:
+
+### Team Members
+
+**Invite Members**
+- Enter Modrinth username to send invitation
+- Set custom role titles
+- Configure monetization revenue split
+
+**Permission Levels**
+- Upload version
+- Delete version
+- Edit project details
+- Edit description and body
+- Manage team invites
+- Remove members
+- Edit member permissions
+- Delete project
+- View analytics
+- View revenue
+
+<Note>
+The project owner has all permissions by default and cannot leave the project without transferring ownership.
+</Note>
+
+## Advanced Features
+
+### Link Management
+
+Bulk edit links across multiple projects:
+- Issue tracker URLs
+- Source code repositories
+- Wiki pages
+- Discord invite links
+
+### Project Status
+
+Projects can have the following statuses:
+- **Approved** - Live and visible to all users
+- **Processing** - Under review by moderators
+- **Rejected** - Did not meet content guidelines
+- **Draft** - Not yet published
+- **Unlisted** - Not visible in search but accessible via direct link
+- **Private** - Only visible to team members
+
+### Launcher Integration
+
+The web interface integrates with popular Minecraft launchers:
+- Modrinth App (official)
+- Prism Launcher
+- ATLauncher
+- MultiMC
+- And many more through the open API
+
+<Tip>
+Download the [Modrinth App](/app) for the best integration experience with one-click installs and automatic updates.
+</Tip>

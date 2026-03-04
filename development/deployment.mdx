@@ -1,0 +1,778 @@
+---
+title: Deployment
+description: Production deployment and release process for Modrinth
+---
+
+## Overview
+
+Modrinth uses different deployment strategies for its various components:
+
+- **Frontend (Web)**: Cloudflare Pages with SSR
+- **Backend (Labrinth)**: Docker containers on Kubernetes
+- **Desktop App**: GitHub Releases with auto-updater
+- **Documentation**: Cloudflare Pages (static)
+
+## Frontend Deployment (Cloudflare Pages)
+
+### Build Process
+
+The web frontend is deployed to Cloudflare Pages with Nuxt's Cloudflare preset.
+
+**Build command**:
+```bash
+NITRO_PRESET=cloudflare-pages pnpm --filter frontend run build
+```
+
+**Output**: `.output/` directory with:
+- Static assets in `.output/public/`
+- Server functions in `.output/server/`
+
+### CI/CD Workflow
+
+```yaml .github/workflows/frontend-deploy.yml
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/frontend/**'
+      - 'packages/ui/**'
+      - 'packages/api-client/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9.15.0
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Build
+        run: pnpm pages:build
+        env:
+          NUXT_PUBLIC_LABRINTH_URL: https://api.modrinth.com
+          NUXT_PUBLIC_ARCHON_URL: https://archon.modrinth.com
+      
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: modrinth-web
+          directory: apps/frontend/.output/public
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Preview Deployments
+
+Every pull request gets an automatic preview deployment:
+
+```yaml .github/workflows/frontend-preview.yml
+name: Preview Deployment
+
+on:
+  pull_request:
+    paths:
+      - 'apps/frontend/**'
+      - 'packages/ui/**'
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      # ... same build steps ...
+      
+      - name: Deploy Preview
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: modrinth-web
+          directory: apps/frontend/.output/public
+          branch: pr-${{ github.event.pull_request.number }}
+```
+
+Preview URL: `https://pr-{number}.modrinth-web.pages.dev`
+
+### Environment Variables
+
+Production environment variables are configured in Cloudflare Pages:
+
+```bash
+NUXT_PUBLIC_LABRINTH_URL=https://api.modrinth.com
+NUXT_PUBLIC_ARCHON_URL=https://archon.modrinth.com
+NUXT_PUBLIC_KYROS_URL=https://{node}.nodes.modrinth.com
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+RATE_LIMIT_KEY=...
+```
+
+### SSR Configuration
+
+Nuxt is configured for server-side rendering:
+
+```typescript nuxt.config.ts
+export default defineNuxtConfig({
+	nitro: {
+		preset: 'cloudflare-pages',
+		compressPublicAssets: true,
+	},
+	routingRules: {
+		'/api/**': { cache: { maxAge: 0 } },
+		'/_nuxt/**': { cache: { maxAge: 31536000 } },
+	},
+})
+```
+
+### Rollback
+
+Rollback to previous deployment:
+
+```bash
+# Via Cloudflare dashboard
+# Pages > modrinth-web > Deployments > Rollback
+
+# Or redeploy previous commit
+git revert HEAD
+git push origin main
+```
+
+## Backend Deployment (Docker + Kubernetes)
+
+### Docker Build
+
+Labrinth is deployed as a Docker container.
+
+**Dockerfile**:
+```dockerfile apps/labrinth/Dockerfile
+FROM rust:1.90 as builder
+
+WORKDIR /app
+COPY . .
+
+# Build with release profile
+RUN cargo build -p labrinth --profile release-labrinth
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/target/release-labrinth/labrinth /usr/local/bin/labrinth
+
+EXPOSE 8000
+
+CMD ["labrinth"]
+```
+
+### CI/CD Workflow
+
+```yaml .github/workflows/labrinth-docker.yml
+name: Build Labrinth Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/labrinth/**'
+      - 'packages/ariadne/**'
+      - 'packages/daedalus/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/modrinth/labrinth
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/labrinth/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+### Release Profile
+
+Production builds use optimized settings:
+
+```toml Cargo.toml
+[profile.release-labrinth]
+inherits = "release"
+opt-level = "s"       # Optimize for size
+strip = false         # Keep debug symbols for Sentry
+lto = true            # Link-time optimization
+panic = "unwind"      # Don't exit on panic (allow recovery)
+codegen-units = 1     # Better optimization
+```
+
+### Kubernetes Deployment
+
+**Deployment manifest**:
+```yaml k8s/labrinth-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: labrinth
+  namespace: modrinth
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: labrinth
+  template:
+    metadata:
+      labels:
+        app: labrinth
+    spec:
+      containers:
+      - name: labrinth
+        image: ghcr.io/modrinth/labrinth:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: labrinth-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: labrinth-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+```
+
+**Service**:
+```yaml k8s/labrinth-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: labrinth
+  namespace: modrinth
+spec:
+  selector:
+    app: labrinth
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
+```
+
+### Database Migrations
+
+Migrations are run before deploying new version:
+
+```bash
+# Connect to production database (read-only first!)
+psql $DATABASE_URL
+
+# Test migration in transaction
+BEGIN;
+\i migrations/XXXXXX_new_migration.sql
+ROLLBACK;  -- or COMMIT if looks good
+
+# Run migrations via SQLx
+cargo sqlx migrate run --database-url $DATABASE_URL
+```
+
+<Warning>
+**Always test migrations on staging first!** Never run untested migrations on production.
+</Warning>
+
+### Rolling Updates
+
+```bash
+# Update image
+kubectl set image deployment/labrinth \
+  labrinth=ghcr.io/modrinth/labrinth:new-version \
+  -n modrinth
+
+# Monitor rollout
+kubectl rollout status deployment/labrinth -n modrinth
+
+# Rollback if needed
+kubectl rollout undo deployment/labrinth -n modrinth
+```
+
+### Health Checks
+
+Labrinth exposes health endpoints:
+
+```rust src/routes/health.rs
+use actix_web::{web, HttpResponse};
+
+pub async fn health() -> HttpResponse {
+    HttpResponse::Ok().json(json!({
+        "status": "ok",
+        "version": env!("CARGO_PKG_VERSION"),
+    }))
+}
+
+pub async fn ready(
+    pool: web::Data<PgPool>,
+) -> HttpResponse {
+    // Check database connection
+    if sqlx::query("SELECT 1").execute(pool.get_ref()).await.is_ok() {
+        HttpResponse::Ok().json(json!({ "status": "ready" }))
+    } else {
+        HttpResponse::ServiceUnavailable().json(json!({ "status": "not ready" }))
+    }
+}
+```
+
+## Desktop App Deployment
+
+### Build Process
+
+The desktop app is built for all platforms using GitHub Actions.
+
+```yaml .github/workflows/theseus-build.yml
+name: Build Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9.15.0
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Install platform dependencies (Linux)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev
+      
+      - name: Build app
+        run: pnpm app:build
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.platform }}
+          path: |
+            apps/app/src-tauri/target/release/bundle/
+```
+
+### Release Process
+
+<Steps>
+  <Step title="Create Tag">
+    ```bash
+    git tag v1.2.3
+    git push origin v1.2.3
+    ```
+    
+    This triggers the build workflow.
+  </Step>
+  
+  <Step title="Build Artifacts">
+    GitHub Actions builds for:
+    - **macOS**: Universal binary (x64 + ARM64) `.dmg`
+    - **Windows**: `.msi` installer and `.exe` portable
+    - **Linux**: `.deb`, `.AppImage`
+  </Step>
+  
+  <Step title="Create GitHub Release">
+    ```bash
+    gh release create v1.2.3 \
+      --title "Modrinth App v1.2.3" \
+      --notes "Release notes here" \
+      apps/app/target/release/bundle/**/*
+    ```
+  </Step>
+  
+  <Step title="Update Auto-Updater">
+    Tauri's auto-updater automatically detects new releases from GitHub.
+  </Step>
+</Steps>
+
+### Version Numbering
+
+The app version is set in `packages/app-lib/Cargo.toml`:
+
+```toml
+[package]
+name = "theseus"
+version = "1.2.3"
+```
+
+This is automatically updated by the build workflow using the git tag.
+
+### Code Signing
+
+**macOS**:
+```bash
+# Sign with Apple Developer certificate
+codesign --sign "Developer ID Application: Modrinth" \
+  --options runtime \
+  --entitlements entitlements.plist \
+  Modrinth.app
+
+# Notarize
+xcrun notarytool submit Modrinth.dmg \
+  --apple-id $APPLE_ID \
+  --password $APP_PASSWORD \
+  --team-id $TEAM_ID
+```
+
+**Windows**:
+```bash
+# Sign with certificate
+signtool sign /f certificate.pfx \
+  /p $PASSWORD \
+  /tr http://timestamp.digicert.com \
+  /td SHA256 \
+  Modrinth-Setup.exe
+```
+
+### Auto-Updates
+
+The app checks for updates on launch:
+
+```rust apps/app/src/main.rs
+use tauri_plugin_updater::UpdaterExt;
+
+fn main() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .setup(|app| {
+            let handle = app.handle();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(Some(update)) = handle.updater().check().await {
+                    // Notify user
+                    // Download and install
+                    update.download_and_install().await.unwrap();
+                }
+            });
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+## Documentation Deployment
+
+Documentation (this site) is deployed to Cloudflare Pages:
+
+```bash
+# Build docs
+cd apps/docs
+pnpm build
+
+# Deploy
+wrangler pages deploy dist --project-name modrinth-docs
+```
+
+Automatically deployed on push to `main`.
+
+## Infrastructure
+
+### Services
+
+Modrinth production infrastructure:
+
+- **Cloudflare Pages**: Frontend hosting + CDN
+- **Kubernetes**: Backend API orchestration
+- **PostgreSQL**: Primary database (managed)
+- **Redis**: Cache and sessions (managed)
+- **ClickHouse**: Analytics database (managed)
+- **Meilisearch**: Search engine (managed)
+- **S3**: Object storage (files, images)
+- **Sentry**: Error tracking
+- **Datadog**: Monitoring and logging
+
+### Monitoring
+
+**Health checks**:
+```bash
+# API health
+curl https://api.modrinth.com/health
+
+# Search health
+curl https://api.modrinth.com/_internal/search/health
+```
+
+**Metrics** (Prometheus):
+- Request rate
+- Response time
+- Error rate
+- Database query time
+- Cache hit rate
+
+**Logging** (Datadog):
+- Application logs
+- Access logs
+- Error logs
+- Audit logs
+
+### Scaling
+
+**Horizontal scaling**:
+```bash
+# Scale API pods
+kubectl scale deployment/labrinth --replicas=5 -n modrinth
+
+# Auto-scaling
+kubectl autoscale deployment/labrinth \
+  --min=3 --max=10 \
+  --cpu-percent=70 \
+  -n modrinth
+```
+
+**Database scaling**:
+- Read replicas for read-heavy queries
+- Connection pooling (PgBouncer)
+- Query optimization
+
+## Deployment Checklist
+
+### Pre-Deployment
+
+<Steps>
+  <Step title="Run Tests">
+    ```bash
+    pnpm test
+    cargo test --workspace
+    ```
+  </Step>
+  
+  <Step title="Check Linting">
+    ```bash
+    pnpm lint
+    cargo clippy --workspace --all-targets -- -D warnings
+    ```
+  </Step>
+  
+  <Step title="Test Migrations">
+    Test database migrations on staging environment first.
+  </Step>
+  
+  <Step title="Update Changelog">
+    Document changes in CHANGELOG.md or release notes.
+  </Step>
+  
+  <Step title="Review Dependencies">
+    Check for security vulnerabilities:
+    ```bash
+    pnpm audit
+    cargo audit
+    ```
+  </Step>
+</Steps>
+
+### Deployment
+
+<Steps>
+  <Step title="Deploy to Staging">
+    Test on staging environment first:
+    ```bash
+    git push origin staging
+    ```
+  </Step>
+  
+  <Step title="Run Smoke Tests">
+    Verify critical functionality on staging.
+  </Step>
+  
+  <Step title="Deploy to Production">
+    ```bash
+    git push origin main
+    ```
+  </Step>
+  
+  <Step title="Monitor Deployment">
+    Watch logs and metrics for errors:
+    - Check Sentry for new errors
+    - Monitor Datadog dashboards
+    - Watch Kubernetes pod status
+  </Step>
+  
+  <Step title="Verify Functionality">
+    Test critical user flows:
+    - Login/authentication
+    - Project search
+    - File downloads
+    - API endpoints
+  </Step>
+</Steps>
+
+### Post-Deployment
+
+- Announce release (if user-facing changes)
+- Update documentation if needed
+- Monitor for issues over next 24 hours
+- Be ready to rollback if critical issues arise
+
+## Rollback Procedures
+
+### Frontend Rollback
+
+```bash
+# Via Cloudflare Pages dashboard
+# Or redeploy previous commit
+git revert HEAD
+git push origin main
+```
+
+### Backend Rollback
+
+```bash
+# Kubernetes rollback
+kubectl rollout undo deployment/labrinth -n modrinth
+
+# Or deploy specific version
+kubectl set image deployment/labrinth \
+  labrinth=ghcr.io/modrinth/labrinth:previous-version \
+  -n modrinth
+```
+
+### Database Rollback
+
+If migration needs to be reverted:
+
+```bash
+# Run down migration (if available)
+cargo sqlx migrate revert --database-url $DATABASE_URL
+
+# Or restore from backup
+psql $DATABASE_URL < backup.sql
+```
+
+<Warning>
+**Database rollbacks are risky!** Always test migrations thoroughly before deploying.
+</Warning>
+
+## Security
+
+### Secrets Management
+
+- GitHub Secrets for CI/CD
+- Kubernetes Secrets for production
+- Never commit secrets to git
+- Rotate secrets regularly
+
+### Vulnerability Scanning
+
+```bash
+# npm audit
+pnpm audit
+
+# cargo audit
+cargo install cargo-audit
+cargo audit
+
+# Container scanning (Docker)
+docker scan ghcr.io/modrinth/labrinth:latest
+```
+
+### SSL/TLS
+
+- Cloudflare provides SSL for frontend
+- Let's Encrypt certificates for backend
+- Enforce HTTPS everywhere
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Setup" icon="server" href="/development/local-setup">
+    Set up local development environment
+  </Card>
+  
+  <Card title="Testing" icon="flask" href="/development/testing">
+    Run tests before deployment
+  </Card>
+  
+  <Card title="Backend (Labrinth)" icon="server" href="/development/backend-labrinth">
+    Learn about backend architecture
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Contribute to Modrinth
+  </Card>
+</CardGroup>

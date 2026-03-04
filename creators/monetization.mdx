@@ -1,0 +1,513 @@
+---
+title: Monetization
+description: Earn money from your Modrinth projects through creator programs and payouts
+---
+
+Modrinth's monetization system allows creators to earn revenue from their projects through ads, subscriptions, and affiliate programs. This guide covers enrollment, revenue tracking, and withdrawing your earnings.
+
+## Monetization Overview
+
+Creators can earn money through:
+- **Creator Rewards** - Revenue from project views and downloads
+- **Affiliate Programs** - Commissions from referral links
+- **Subscription Revenue** - Portion of Modrinth+ subscriptions
+
+All projects are monetized by default when published.
+
+## Creator Revenue
+
+Revenue is generated when:
+- Users view your project page (ad impressions)
+- Users download your project files
+- Users spend time with your project installed
+
+Factors affecting revenue:
+- **Geographic location** - Different regions have different ad rates
+- **Monetization status** - Some views/downloads may not be monetizable
+- **User subscription** - Modrinth+ subscribers generate different revenue
+- **Project popularity** - More views = more revenue
+
+## Payout System
+
+### Revenue Availability
+
+Revenue becomes available for withdrawal:
+- **30 days after earning** - Standard holding period
+- Shows as "pending" until available
+- Once available, appears in your withdrawable balance
+
+### Checking Your Balance
+
+```bash
+GET /v3/payouts/balance
+```
+
+Response:
+```json
+{
+  "available": "125.50",
+  "withdrawn_lifetime": "450.00",
+  "withdrawn_ytd": "125.50",
+  "pending": "75.25",
+  "dates": {
+    "2024-02-15T00:00:00Z": "50.00",
+    "2024-03-15T00:00:00Z": "25.25"
+  },
+  "requested_form_type": "W9",
+  "form_completion_status": "complete"
+}
+```
+
+<ParamField path="available" type="decimal">
+  Amount you can withdraw now (USD)
+</ParamField>
+
+<ParamField path="withdrawn_lifetime" type="decimal">
+  Total withdrawn across all time
+</ParamField>
+
+<ParamField path="withdrawn_ytd" type="decimal">  
+  Amount withdrawn this calendar year
+</ParamField>
+
+<ParamField path="pending" type="decimal">
+  Earnings not yet available (still in holding period)
+</ParamField>
+
+<ParamField path="dates" type="object">
+  When pending revenue becomes available
+  
+  Map of dates to amounts that unlock on those dates.
+</ParamField>
+
+## Tax Compliance
+
+<Warning>
+US-based creators and some international creators must complete tax forms before withdrawing above certain thresholds.
+</Warning>
+
+### Tax Form Requirements
+
+Depending on your location and earnings, you may need to complete:
+
+**US Creators (W-9)**
+- Required when withdrawals exceed threshold (typically $600/year)
+- Provides Tax Identification Number (TIN) or SSN
+- Used for IRS 1099 reporting
+- Must match IRS records
+
+**Non-US Creators (W-8BEN)**  
+- Required for non-US residents
+- Certifies foreign status
+- May reduce withholding taxes
+- No TIN matching required
+
+### Requesting a Tax Form
+
+```bash
+POST /v3/payouts/compliance
+```
+
+Request body:
+```json
+{
+  "form_type": "W9"
+}
+```
+
+Form types:
+- `W9` - US persons
+- `W8BEN` - Non-US individuals
+
+Response includes a URL to complete the form through Modrinth's tax compliance provider (Avalara).
+
+### Form Completion Status
+
+<ParamField path="form_completion_status" type="string">
+  Status of your tax compliance
+  
+  Values:
+  - `unrequested` - No form requested yet
+  - `unsigned` - Form requested but not signed
+  - `tin_mismatch` - Form signed but TIN doesn't match IRS (W-9 only)
+  - `complete` - Form signed and validated
+  - `unknown` - Compliance API error (temporary)
+</ParamField>
+
+<Warning>
+If your TIN doesn't match IRS records, withdrawals are blocked until resolved. Contact support for assistance.
+</Warning>
+
+### Manual Review
+
+Some accounts require manual review:
+- Additional information needed
+- Unusual payout patterns
+- Compliance verification
+
+If flagged for review:
+```
+More information is required to proceed. 
+Please contact support (https://support.modrinth.com)
+```
+
+## Payout Methods
+
+Modrinth supports multiple payout methods:
+
+### Available Methods
+
+Get supported payout methods:
+```bash
+GET /v3/payouts/methods?country=US
+```
+
+Returns available methods for your country:
+```json
+[
+  {
+    "type": "paypal",
+    "name": "PayPal",
+    "supported_countries": ["US", "UK", "CA", ...],
+    "min_amount": "1.00",
+    "fee_percentage": "2.0"
+  },
+  {
+    "type": "tremendous",
+    "name": "Gift Cards",
+    "supported_countries": ["US"],
+    "min_amount": "1.00",
+    "options": [...]
+  }
+]
+```
+
+### PayPal
+- **Countries**: Most worldwide
+- **Fee**: ~2% + currency conversion
+- **Speed**: 1-3 business days
+- **Requirements**: PayPal account
+
+### Venmo  
+- **Countries**: US only
+- **Fee**: ~2%
+- **Speed**: 1-2 business days
+- **Requirements**: Venmo account
+
+### MuralPay
+- **Countries**: Select countries
+- **Options**: Bank transfer, crypto (USDC), local methods
+- **Fee**: Varies by method
+- **Speed**: 1-5 business days
+
+### Tremendous (Gift Cards)
+- **Countries**: US primarily
+- **Options**: Amazon, Visa, hundreds of retailers
+- **Fee**: None for most cards
+- **Speed**: Instant
+- **No minimum**: Can withdraw any amount
+
+## Creating a Payout
+
+### Calculate Fees
+
+Before withdrawing, check fees:
+
+```bash
+POST /v3/payouts/fees
+```
+
+Request body:
+```json
+{
+  "amount": "100.00",
+  "method": {
+    "type": "paypal",
+    "paypal_email": "creator@example.com"
+  }
+}
+```
+
+Response:
+```json
+{
+  "net_usd": "98.00",
+  "fee": "2.00",
+  "exchange_rate": null
+}
+```
+
+<ParamField path="net_usd" type="decimal">
+  Amount you'll receive after fees
+</ParamField>
+
+<ParamField path="fee" type="decimal">
+  Total fees deducted
+</ParamField>
+
+<ParamField path="exchange_rate" type="decimal">
+  Currency conversion rate (if applicable)
+</ParamField>
+
+### Submitting a Withdrawal
+
+```bash
+POST /v3/payouts
+```
+
+Request body examples:
+
+**PayPal**:
+```json
+{
+  "amount": "100.00",
+  "method": {
+    "type": "paypal",
+    "paypal_email": "creator@example.com"
+  }
+}
+```
+
+**Gift Card**:
+```json
+{
+  "amount": "50.00",
+  "method": {
+    "type": "tremendous",
+    "gift_card_id": "amazon-us",
+    "email": "creator@example.com"
+  }
+}
+```
+
+**Bank Transfer (MuralPay)**:
+```json
+{
+  "amount": "200.00",
+  "method": {
+    "type": "muralpay",
+    "rail_code": "us-ach",
+    "account_details": {
+      "account_number": "123456789",
+      "routing_number": "987654321",
+      "account_type": "checking"
+    }
+  }
+}
+```
+
+### Payout Validation
+
+Your payout will be validated:
+- Sufficient available balance
+- Tax compliance requirements met
+- Amount meets minimum (if applicable)
+- Account not flagged for manual review
+
+<Warning>
+Payouts are final once submitted. Double-check amounts and account details.
+</Warning>
+
+## Payout Status
+
+Track your withdrawal status:
+
+```bash
+GET /v3/payouts/history
+```
+
+Returns:
+```json
+[
+  {
+    "type": "withdrawal",
+    "id": "AbCdEfGh",
+    "status": "in-transit",
+    "created": "2024-01-15T10:30:00Z",
+    "amount": "100.00",
+    "fee": "2.00",
+    "method_type": "paypal",
+    "method_id": "paypal_us",
+    "method_address": "cr***or@example.com"
+  },
+  {
+    "type": "payout_available",
+    "created": "2024-01-01T00:00:00Z",
+    "payout_source": "creator_rewards",
+    "amount": "125.50"
+  }
+]
+```
+
+### Payout Statuses
+
+<ParamField path="status" type="string">
+  Current payout state
+  
+  - `in-transit` - Processing with payment provider
+  - `success` - Completed successfully
+  - `failed` - Failed (refunded to balance)
+  - `cancelled` - You cancelled it
+  - `cancelling` - Cancellation in progress
+</ParamField>
+
+## Cancelling Payouts
+
+Cancel in-transit payouts:
+
+```bash
+DELETE /v3/payouts/{id}
+```
+
+Only works for:
+- Payouts in `in-transit` status
+- Before the payment processor completes them
+- Usually within 1-2 hours of submission
+
+If cancelled, the amount is refunded to your available balance.
+
+## Revenue Sharing
+
+Team members can receive a share of project revenue:
+
+### Payout Splits
+
+When adding or editing team members:
+```json
+{
+  "user_id": "TeamMember",
+  "payouts_split": 25.5
+}
+```
+
+The `payouts_split` value:
+- Percentage of project revenue (0-5000%)
+- Can total > 100% across all members
+- Used to distribute earnings automatically
+- Set when inviting or editing members
+
+### How Revenue is Distributed
+
+1. Project earns revenue
+2. Revenue is held for 30 days
+3. After hold, revenue is distributed:
+   - Each member receives their % share
+   - Added to their personal balance
+   - Can be withdrawn independently
+
+### Multiple Projects
+
+If you're on multiple project teams:
+- Each project's revenue is tracked separately  
+- Your total balance aggregates all projects
+- Withdrawal history shows per-project earnings
+
+## Transaction History
+
+Your history shows two event types:
+
+**Payout Available**
+- Revenue became withdrawable
+- From specific project or affiliate code
+- After 30-day holding period
+
+**Withdrawal**
+- You withdrew money
+- Shows amount, fees, method, status
+- Permanent record
+
+History is sorted chronologically.
+
+## Affiliate Codes
+
+Create affiliate codes to earn commission on Modrinth+ subscriptions:
+
+### Setting Up Affiliates
+
+Affiliate codes can:
+- Provide discount to subscribers
+- Earn you commission on sales
+- Track clicks and conversions
+- Generate revenue separate from projects
+
+Revenue appears in your balance as:
+```json
+{
+  "payout_source": "affiliates"
+}
+```
+
+### Tracking Affiliate Performance
+
+Use analytics to track:
+- Clicks on your affiliate links
+- Conversions (purchases)
+- Revenue generated
+
+See [Analytics](/creators/analytics) for details on affiliate metrics.
+
+## Best Practices
+
+1. **Complete tax forms early** - Before hitting thresholds
+2. **Verify payout details** - Double-check email addresses and account numbers
+3. **Track your earnings** - Use analytics to understand revenue sources
+4. **Set fair splits** - Compensate team members appropriately
+5. **Withdraw regularly** - Avoid large accumulated balances
+6. **Keep records** - Save payout confirmations for taxes
+7. **Understand fees** - Different methods have different costs
+
+## Tax Reporting
+
+For US creators:
+- Modrinth reports earnings to the IRS via Form 1099
+- You'll receive a 1099 if you earned > $600 in a year
+- Report this income on your tax return
+- Consult a tax professional for guidance
+
+For non-US creators:
+- Tax obligations vary by country
+- You may need to report foreign income
+- W-8BEN may reduce US withholding
+- Consult local tax authorities
+
+## Troubleshooting
+
+**Cannot withdraw - tax form required**
+- Complete W-9 or W-8BEN form
+- Wait for TIN validation (US only)
+- May take 24-48 hours to process
+
+**TIN mismatch error**
+- TIN/SSN doesn't match IRS records
+- Verify you entered it correctly
+- Contact support if correct but still failing
+- Withdrawals blocked until resolved
+
+**Payout failed**
+- Check account details are correct
+- Ensure account can receive payments
+- Amount refunded to your balance
+- Try different payout method
+
+**Manual review required**
+- Additional verification needed
+- Contact support for assistance
+- Provide requested documentation
+- Usually resolved within 1-2 weeks
+
+**Revenue not appearing**
+- Revenue has 30-day holding period
+- Check "pending" balance for upcoming payouts
+- Verify you have VIEW_ANALYTICS permission
+- Some views/downloads may not be monetizable
+
+## Support
+
+For monetization issues:
+- **Email**: support@modrinth.com
+- **Support site**: https://support.modrinth.com
+- **Discord**: Community support (not for sensitive financial info)
+
+<Note>
+Never share your API tokens, tax information, or full account details in public channels.
+</Note>

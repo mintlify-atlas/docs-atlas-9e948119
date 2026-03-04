@@ -1,0 +1,402 @@
+---
+title: Analytics
+description: Track downloads, views, revenue, and other metrics for your Modrinth projects
+---
+
+Mondrinth Analytics provides detailed insights into how your projects are performing. Track downloads, page views, playtime, revenue, and demographic data to understand your audience and optimize your content.
+
+## Analytics Overview
+
+Analytics data is collected for:
+- **Project views** - Page visits to your project
+- **Downloads** - File downloads across versions
+- **Playtime** - Time users spend with your project installed
+- **Revenue** - Earnings from creator programs (requires `PAYOUTS_READ` scope)
+
+## Permission Requirements
+
+<ParamField path="ANALYTICS" type="scope" required>
+  API scope for viewing analytics data
+  
+  Required for:
+  - View counts
+  - Download counts  
+  - Playtime statistics
+</ParamField>
+
+<ParamField path="VIEW_ANALYTICS" type="permission" required>
+  Project permission to access analytics
+  
+  You must have this permission on projects you want to view analytics for.
+</ParamField>
+
+<ParamField path="PAYOUTS_READ" type="scope">
+  Additional scope for viewing revenue
+  
+  Required only if you want to see revenue/monetization data.
+</ParamField>
+
+## Fetching Analytics
+
+### Analytics Request
+
+Fetch analytics data using the unified analytics endpoint:
+
+```bash
+POST /v3/analytics
+```
+
+Request body:
+```json
+{
+  "time_range": {
+    "start": "2024-01-01T00:00:00Z",
+    "end": "2024-01-31T23:59:59Z",
+    "resolution": {
+      "slices": 30
+    }
+  },
+  "return_metrics": {
+    "project_views": {
+      "bucket_by": ["project_id", "domain"]
+    },
+    "project_downloads": {
+      "bucket_by": ["project_id", "version_id"]
+    }
+  }
+}
+```
+
+### Time Range Configuration
+
+<ParamField path="time_range.start" type="datetime" required>
+  Start of analytics period (ISO 8601 format)
+  
+  Example: `"2024-01-01T00:00:00Z"`
+</ParamField>
+
+<ParamField path="time_range.end" type="datetime" required>
+  End of analytics period (ISO 8601 format)
+  
+  Must be after start time.
+  Example: `"2024-01-31T23:59:59Z"`
+</ParamField>
+
+<ParamField path="time_range.resolution" type="object" required>
+  How to divide the time range into buckets
+  
+  Two options:
+  
+  **By number of slices**:
+  ```json
+  {"slices": 30}
+  ```
+  Creates 30 equal time periods. Resolution is calculated automatically.
+  
+  **By time duration**:
+  ```json
+  {"minutes": 60}
+  ```
+  Each slice is 60 minutes. Number of slices calculated automatically.
+  
+  Constraints:
+  - Minimum resolution: 60 minutes
+  - Maximum slices: 1024
+</ParamField>
+
+## Metric Types
+
+### Project Views
+
+Track page views to your project:
+
+```json
+"project_views": {
+  "bucket_by": ["project_id", "domain", "site_path", "monetized", "country"]
+}
+```
+
+<ParamField path="bucket_by" type="array">
+  Group views by these dimensions:
+  
+  - `project_id` - Which project was viewed
+  - `domain` - Referrer domain (e.g., "youtube.com", "discord.com")
+  - `site_path` - Modrinth path visited (e.g., "/mod/sodium")
+  - `monetized` - Whether views were monetizable (boolean)
+  - `country` - User's country (anonymized to "XX" if < 50 views)
+  
+  Leave empty `[]` to aggregate all views together.
+</ParamField>
+
+Response example:
+```json
+{
+  "source_project": "AANobbMI",
+  "metric_kind": "views",
+  "domain": "youtube.com",
+  "monetized": true,
+  "views": 1523
+}
+```
+
+### Project Downloads  
+
+Track downloads of your project files:
+
+```json
+"project_downloads": {
+  "bucket_by": ["project_id", "version_id", "domain", "site_path", "country"]
+}
+```
+
+<ParamField path="bucket_by" type="array">
+  Group downloads by:
+  
+  - `project_id` - Which project was downloaded
+  - `version_id` - Specific version downloaded
+  - `domain` - Referrer domain
+  - `site_path` - Download page path
+  - `country` - User's country (anonymized if < 50 downloads)
+</ParamField>
+
+Response example:
+```json
+{
+  "source_project": "AANobbMI",
+  "metric_kind": "downloads",
+  "version_id": "IjKlMnOp",
+  "downloads": 3891
+}
+```
+
+### Project Playtime
+
+Track how long users play with your project:
+
+```json
+"project_playtime": {
+  "bucket_by": ["project_id", "version_id", "loader", "game_version"]
+}
+```
+
+<ParamField path="bucket_by" type="array">
+  Group playtime by:
+  
+  - `project_id` - Which project
+  - `version_id` - Which version
+  - `loader` - Mod loader used (e.g., "fabric", "forge")
+  - `game_version` - Game version (e.g., "1.20.1")
+</ParamField>
+
+Response example:
+```json
+{
+  "source_project": "AANobbMI",
+  "metric_kind": "playtime",
+  "loader": "fabric",
+  "game_version": "1.20.1",
+  "seconds": 45823
+}
+```
+
+### Project Revenue
+
+Track earnings from your project (requires `PAYOUTS_READ` scope):
+
+```json
+"project_revenue": {
+  "bucket_by": ["project_id"]
+}
+```
+
+<ParamField path="bucket_by" type="array">
+  Group revenue by:
+  
+  - `project_id` - Which project generated revenue
+  
+  Currently only `project_id` is supported.
+</ParamField>
+
+Response example:
+```json
+{
+  "source_project": "AANobbMI",
+  "metric_kind": "revenue",
+  "revenue": "125.50"
+}
+```
+
+## Response Format
+
+The response is an array of time slices:
+
+```json
+[
+  [
+    {
+      "source_project": "AANobbMI",
+      "metric_kind": "views",
+      "domain": "youtube.com",
+      "views": 523
+    },
+    {
+      "source_project": "AANobbMI",
+      "metric_kind": "downloads",
+      "version_id": "IjKlMnOp",
+      "downloads": 142
+    }
+  ],
+  [
+    {
+      "source_project": "AANobbMI",
+      "metric_kind": "views",
+      "domain": "discord.com",
+      "views": 381
+    }
+  ]
+]
+```
+
+Each outer array element is a time slice. Within each slice, you get analytics data grouped by your `bucket_by` fields.
+
+## Affiliate Code Analytics
+
+Track performance of your affiliate codes:
+
+### Affiliate Clicks
+
+```json
+"affiliate_code_clicks": {
+  "bucket_by": ["affiliate_code_id"]
+}
+```
+
+Tracks how many times your affiliate links were clicked.
+
+### Affiliate Conversions
+
+```json
+"affiliate_code_conversions": {
+  "bucket_by": ["affiliate_code_id"]
+}
+```
+
+Tracks successful purchases using your affiliate code.
+
+### Affiliate Revenue
+
+```json
+"affiliate_code_revenue": {
+  "bucket_by": ["affiliate_code_id"]
+}
+```
+
+Earnings from affiliate commissions (requires `PAYOUTS_READ`).
+
+## Example: Complete Analytics Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/analytics \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_range": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2024-01-31T23:59:59Z",
+      "resolution": {"slices": 31}
+    },
+    "return_metrics": {
+      "project_views": {
+        "bucket_by": ["project_id", "domain"]
+      },
+      "project_downloads": {
+        "bucket_by": ["project_id", "version_id"]
+      },
+      "project_playtime": {
+        "bucket_by": ["project_id", "loader"]
+      },
+      "project_revenue": {
+        "bucket_by": ["project_id"]
+      }
+    }
+  }'
+```
+
+## Data Privacy and Anonymization
+
+Modrinth respects user privacy:
+
+### Country Data
+- Countries with < 50 views/downloads are reported as `XX`
+- Prevents identifying individual users from small countries
+- Aggregate data remains accurate
+
+### Time Slices
+- Data is bucketed into time periods
+- Individual timestamps are not exposed
+- Minimum resolution of 60 minutes
+
+### Allowed Projects
+You can only fetch analytics for:
+- Projects where you have `VIEW_ANALYTICS` permission
+- As a team member or organization member
+- The API automatically filters your projects
+
+## Understanding Monetization
+
+The `monetized` field in views indicates:
+- `true` - View counted toward creator revenue
+- `false` - View did not generate revenue (e.g., from blocked regions, bot traffic)
+- `null` - When not bucketing by `monetized`
+
+## Best Practices
+
+1. **Limit time ranges** - Shorter ranges load faster and use fewer resources
+2. **Choose appropriate resolution** - Daily for month view, hourly for day view
+3. **Bucket only what you need** - Fewer dimensions = faster queries
+4. **Cache results** - Analytics data doesn't change frequently
+5. **Aggregate client-side** - If you need custom groupings, post-process the data
+6. **Monitor trends** - Compare periods to identify growth or issues
+
+## Analytics Dashboard
+
+Access analytics via the web UI:
+```
+https://modrinth.com/dashboard/analytics
+```
+
+The dashboard shows:
+- Visual charts and graphs
+- Downloads over time
+- Top referrers
+- Geographic distribution
+- Revenue tracking
+
+The web dashboard uses the same API endpoints described here.
+
+## Rate Limits
+
+Analytics endpoints have standard rate limits:
+- Respect the `X-RateLimit-*` headers
+- Cache results when possible
+- Fetch only the data you need
+
+## Troubleshooting
+
+**No data returned**
+- Ensure you have `VIEW_ANALYTICS` permission on projects
+- Check that projects had activity in the time range
+- Verify you're using the correct project IDs
+
+**Resolution too fine error**
+- Minimum resolution is 60 minutes
+- Reduce number of slices or increase time range
+
+**Too many time slices error**
+- Maximum 1024 slices
+- Use larger time increments or shorter range
+
+**Revenue not showing**
+- Requires `PAYOUTS_READ` scope in API token
+- Revenue only available for monetized projects
+- May have 24-48 hour delay for processing

@@ -1,0 +1,150 @@
+---
+title: Installing Mods
+description: Learn how to install mods to your Minecraft instances in the Modrinth launcher
+---
+
+The Modrinth launcher makes it easy to install mods from the Modrinth platform, either through the web browser or directly in the app.
+
+## Finding Mods on Modrinth
+
+Browse and search for mods on [modrinth.com](https://modrinth.com) or within the launcher itself:
+
+- Filter by game version, mod loader (Fabric, Forge, Quilt, NeoForge), and categories
+- View mod details, screenshots, and compatibility information
+- Check download counts, ratings, and recent updates
+- Read mod descriptions and changelogs
+
+## One-Click Installation
+
+The easiest way to install mods is using the one-click installation feature.
+
+<Tabs>
+  <Tab title="From Web Browser">
+    1. Browse to any mod page on modrinth.com
+    2. Click the **Install** button
+    3. Select the target profile/instance from the popup
+    4. The mod will automatically download and install
+
+    <Note>
+    Make sure you have the Modrinth launcher installed and running for one-click installation to work from the browser.
+    </Note>
+  </Tab>
+  
+  <Tab title="From Launcher">
+    1. Open the Modrinth launcher
+    2. Navigate to your profile/instance
+    3. Click **Add Content** or browse the mod library
+    4. Search for the mod you want
+    5. Click **Install** on the mod card
+    6. The mod will be added to your instance automatically
+  </Tab>
+</Tabs>
+
+## Manual Installation
+
+You can also manually add mod files to your instance:
+
+<Steps>
+  <Step title="Download the mod file">
+    Download the `.jar` file for your mod from Modrinth or another source. Make sure it matches your Minecraft version and mod loader.
+  </Step>
+  
+  <Step title="Open your instance folder">
+    In the launcher, right-click your profile and select **Open Folder** or navigate to:
+    - Windows: `%APPDATA%/ModrinthApp/profiles/[instance-name]/mods`
+    - macOS: `~/Library/Application Support/ModrinthApp/profiles/[instance-name]/mods`
+    - Linux: `~/.local/share/ModrinthApp/profiles/[instance-name]/mods`
+  </Step>
+  
+  <Step title="Copy the mod file">
+    Place the downloaded `.jar` file into the `mods` folder.
+  </Step>
+  
+  <Step title="Restart the launcher">
+    The launcher will detect the new mod and add it to your instance.
+  </Step>
+</Steps>
+
+<Warning>
+Manually installed mods won't have automatic update detection. Consider using the launcher's built-in installation for better mod management.
+</Warning>
+
+## Dependency Resolution
+
+The Modrinth launcher automatically handles mod dependencies:
+
+- **Required dependencies**: Automatically downloaded and installed alongside the main mod
+- **Optional dependencies**: Presented as suggestions that you can choose to install
+- **Incompatible mods**: Warnings displayed if conflicts are detected
+
+<Note>
+When installing a mod that requires other mods (like Fabric API for Fabric mods), the launcher will prompt you to install all required dependencies.
+</Note>
+
+## Mod Compatibility Checking
+
+The launcher performs several compatibility checks:
+
+<AccordionGroup>
+  <Accordion title="Minecraft Version">
+    Mods are filtered by your instance's Minecraft version. Only compatible versions are shown.
+  </Accordion>
+  
+  <Accordion title="Mod Loader">
+    Mods are filtered by your mod loader type:
+    - **Fabric**: Requires Fabric Loader
+    - **Forge**: Requires Forge
+    - **Quilt**: Requires Quilt Loader
+    - **NeoForge**: Requires NeoForge
+    
+    The launcher prevents installing mods designed for different loaders.
+  </Accordion>
+  
+  <Accordion title="Client/Server Side">
+    The launcher checks whether mods are:
+    - **Client-only**: Only needed on the player's side
+    - **Server-only**: Only needed on the server side
+    - **Both**: Required on both sides
+    - **Unsupported**: Won't work on a particular side
+  </Accordion>
+  
+  <Accordion title="Conflict Detection">
+    If a mod conflicts with an already installed mod, the launcher will warn you before installation.
+  </Accordion>
+</AccordionGroup>
+
+## Managing Installed Mods
+
+Once mods are installed, you can manage them from your instance:
+
+- **Enable/Disable**: Toggle mods on or off without uninstalling (adds `.disabled` extension)
+- **Update**: Check for and install mod updates
+- **Remove**: Uninstall mods you no longer want
+- **View Details**: See mod information, version, and dependencies
+
+<Tip>
+Disabling a mod instead of removing it is useful for troubleshooting. You can quickly test if a mod is causing issues without fully uninstalling it.
+</Tip>
+
+## Troubleshooting
+
+### Mod Not Appearing In-Game
+
+1. Verify the mod is enabled (not disabled)
+2. Check that you're using the correct Minecraft version
+3. Ensure all required dependencies are installed
+4. Restart your game completely
+
+### Compatibility Issues
+
+- Review the mod's requirements on its Modrinth page
+- Check for known incompatibilities in the mod description
+- Try disabling other mods to identify conflicts
+- Ensure your mod loader version is up to date
+
+### Installation Fails
+
+- Check your internet connection
+- Verify you have sufficient disk space
+- Try closing and reopening the launcher
+- Check the launcher logs for detailed error messages

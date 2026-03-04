@@ -1,0 +1,204 @@
+---
+title: "Getting Started"
+description: "Create and configure your first Modrinth server"
+icon: "rocket"
+---
+
+## Creating Your First Server
+
+Modrinth Hosting makes it easy to launch your own Minecraft: Java Edition server directly from the platform where you browse and install mods.
+
+<Steps>
+  <Step title="Choose a server plan">
+    Navigate to the [Modrinth Hosting page](https://modrinth.com/hosting) and select a plan that fits your needs.
+    
+    **Available plans:**
+    - **Small** - 4GB RAM, 2 CPU cores, 20GB storage
+    - **Medium** - 6GB RAM, 3 CPU cores, 30GB storage  
+    - **Large** - 8GB RAM, 4 CPU cores, 40GB storage
+    - **Custom** - Build your own configuration
+    
+    <Tip>
+      Choose quarterly billing to save 16% compared to monthly payments.
+    </Tip>
+  </Step>
+  
+  <Step title="Select your region">
+    Pick a datacenter location closest to your players for the best performance:
+    - **North America** (US East, US West)
+    - **Europe** (Central EU)
+    - **Southeast Asia** (Singapore)
+    
+    <Note>
+      All regions include DDoS protection with up to 17Tbps capacity. You can check your latency to each region during the setup process.
+    </Note>
+  </Step>
+  
+  <Step title="Configure payment">
+    Add a payment method and complete your purchase. Your server will be provisioned immediately after payment confirmation.
+  </Step>
+  
+  <Step title="Choose your software">
+    After your server is ready, select what you want to run:
+    
+    - **Modpack** - Install any modpack from Modrinth
+    - **Vanilla** - Pure Minecraft server
+    - **Mod loaders** - Fabric, Forge, NeoForge, Quilt
+    - **Plugin loaders** - Paper, Purpur, Spigot
+    
+    <Warning>
+      Make sure your selected loader and Minecraft version are compatible. Modrinth will validate this during installation.
+    </Warning>
+  </Step>
+</Steps>
+
+## Server Plans and Pricing
+
+### Understanding CPU Allocation
+
+Modrinth servers run on high-performance AMD Ryzen 7900 and 7950X3D equivalent CPUs at 5+ GHz, paired with DDR5 memory.
+
+**CPU burst threads:** During high load, your server temporarily gets access to additional CPU threads to prevent lag spikes and maintain 20 TPS. These burst allocations help handle player activity spikes without impacting performance.
+
+### Storage and Memory
+
+All plans include:
+- **NVMe SSD storage** for fast world loading
+- **DDR5 RAM** for optimal performance
+- **15 backup slots** included at no extra cost
+- **Expandable storage** - Contact support if you need more
+
+<CardGroup cols={2}>
+  <Card title="Standard plans" icon="server">
+    Pre-configured plans optimized for different player counts and modpack sizes.
+  </Card>
+  
+  <Card title="Custom plans" icon="sliders">
+    Build your own configuration with exactly the resources you need.
+  </Card>
+</CardGroup>
+
+## Initial Configuration
+
+### Server Installation
+
+When you first access your server, you'll be guided through the installation flow:
+
+1. **Select game version** - Choose any Minecraft version from 1.2.5 onwards
+2. **Pick a loader** - Select your mod/plugin loader
+3. **Install content** - Add mods, plugins, or a modpack
+4. **Wait for installation** - Your server will be configured automatically
+
+<Note>
+  The installation process typically takes 2-5 minutes depending on the complexity of your modpack.
+</Note>
+
+### Network Setup
+
+Every server gets:
+- **Dedicated IP address** for direct connections
+- **Custom subdomain** at `your-name.modrinth.gg`
+- **Primary port** (default: 25565) for Minecraft connections
+- **Additional ports** available for mods that need them
+
+## Connecting to Your Server
+
+### Find Your Connection Details
+
+Your server information is displayed at the top of the management panel:
+
+```
+Server IP: your-server.modrinth.gg
+Port: 25565
+```
+
+### Connect from Minecraft
+
+<Steps>
+  <Step title="Open Minecraft">
+    Launch Minecraft: Java Edition with the same version and loader as your server.
+  </Step>
+  
+  <Step title="Add server">
+    1. Click **Multiplayer**
+    2. Click **Add Server**
+    3. Enter your server name
+    4. Paste your server address: `your-server.modrinth.gg`
+  </Step>
+  
+  <Step title="Join and play">
+    Select your server from the list and click **Join Server**.
+  </Step>
+</Steps>
+
+<Tip>
+  You can also connect using your dedicated IP and port if you prefer: `123.456.789.0:25565`
+</Tip>
+
+## First-Time Setup
+
+### Make Yourself an Operator
+
+To get admin permissions on your server:
+
+1. Go to your server's **Overview** tab
+2. Find the **Console** section
+3. Type the command: `/op YourUsername`
+4. Press Enter
+
+<Note>
+  You must be connected to the server for the `/op` command to work.
+</Note>
+
+### Essential Console Commands
+
+```bash
+# Give yourself operator status
+/op PlayerName
+
+# Change game mode
+/gamemode creative PlayerName
+
+# Set the world spawn point
+/setworldspawn
+
+# Enable command blocks
+/gamerule commandBlocksEnabled true
+
+# View all online players
+/list
+```
+
+### Configure Server Settings
+
+Visit the **Options** section to customize:
+
+- **Server properties** - Edit `server.properties` settings
+- **Startup configuration** - Adjust Java version and startup command
+- **Network settings** - Configure ports and domains
+
+See the [Configuration guide](/hosting/configuration) for detailed information.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Install mods" icon="box" href="/hosting/managing-servers#installing-mods-and-plugins">
+    Add mods and plugins directly from Modrinth's catalog.
+  </Card>
+  
+  <Card title="Set up backups" icon="cloud-arrow-up" href="/hosting/backups">
+    Configure automatic backups to protect your world.
+  </Card>
+  
+  <Card title="Manage files" icon="folder" href="/hosting/managing-servers#server-file-management">
+    Upload and edit server files through the web interface.
+  </Card>
+  
+  <Card title="Monitor performance" icon="chart-line" href="/hosting/managing-servers#performance-monitoring">
+    Track CPU, RAM, and disk usage in real-time.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Important:** Make sure to create a backup before making major changes to your server configuration or installing new mods.
+</Warning>

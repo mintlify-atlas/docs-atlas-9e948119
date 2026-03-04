@@ -1,0 +1,711 @@
+---
+title: Testing
+description: Testing strategies and best practices for Modrinth
+---
+
+## Overview
+
+Modrinth uses a comprehensive testing strategy across both frontend (TypeScript/Vue) and backend (Rust) codebases.
+
+## Test Types
+
+| Type | Purpose | Tools |
+|------|---------|-------|
+| **Unit Tests** | Test individual functions/components | Vitest (JS), cargo test (Rust) |
+| **Integration Tests** | Test interactions between modules | cargo test, Playwright |
+| **E2E Tests** | Test full user workflows | Playwright |
+| **Linting** | Code quality and style | ESLint, Clippy |
+| **Type Checking** | TypeScript type safety | tsc |
+
+## Frontend Testing (TypeScript/Vue)
+
+### Running Tests
+
+```bash
+# Run all frontend tests
+pnpm test
+
+# Run tests for specific package
+pnpm --filter @modrinth/frontend test
+pnpm --filter @modrinth/ui test
+
+# Run in watch mode
+pnpm --filter @modrinth/frontend test --watch
+```
+
+### Unit Tests (Vitest)
+
+Frontend tests use [Vitest](https://vitest.dev/) for fast unit testing.
+
+#### Component Testing
+
+```typescript src/components/ProjectCard.test.ts
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import ProjectCard from './ProjectCard.vue'
+
+describe('ProjectCard', () => {
+	it('renders project title', () => {
+		const wrapper = mount(ProjectCard, {
+			props: {
+				project: {
+					id: '1',
+					title: 'Sodium',
+					description: 'Performance mod',
+					downloads: 10000000,
+				},
+			},
+		})
+
+		expect(wrapper.text()).toContain('Sodium')
+		expect(wrapper.text()).toContain('Performance mod')
+	})
+
+	it('emits click event', async () => {
+		const wrapper = mount(ProjectCard, {
+			props: { project: { id: '1', title: 'Test' } },
+		})
+
+		await wrapper.trigger('click')
+		expect(wrapper.emitted('click')).toBeTruthy()
+	})
+})
+```
+
+#### Utility Function Testing
+
+```typescript src/helpers/format.test.ts
+import { describe, it, expect } from 'vitest'
+import { formatNumber, formatDate } from './format'
+
+describe('formatNumber', () => {
+	it('formats large numbers', () => {
+		expect(formatNumber(1234567)).toBe('1.2M')
+		expect(formatNumber(1234)).toBe('1.2K')
+		expect(formatNumber(123)).toBe('123')
+	})
+})
+
+describe('formatDate', () => {
+	it('formats relative dates', () => {
+		const now = new Date()
+		const hourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+		expect(formatDate(hourAgo)).toBe('1 hour ago')
+	})
+})
+```
+
+#### Composable Testing
+
+```typescript src/composables/useProject.test.ts
+import { describe, it, expect, vi } from 'vitest'
+import { useProject } from './useProject'
+import { flushPromises } from '@vue/test-utils'
+
+vi.mock('@modrinth/api-client', () => ({
+	labrinth: {
+		projects_v3: {
+			get: vi.fn().mockResolvedValue({
+				id: 'sodium',
+				title: 'Sodium',
+			}),
+		},
+	},
+}))
+
+describe('useProject', () => {
+	it('fetches project data', async () => {
+		const { project, loading } = useProject('sodium')
+
+		expect(loading.value).toBe(true)
+		await flushPromises()
+
+		expect(loading.value).toBe(false)
+		expect(project.value?.title).toBe('Sodium')
+	})
+})
+```
+
+### E2E Tests (Playwright)
+
+End-to-end tests simulate real user interactions.
+
+```typescript tests/e2e/project-page.spec.ts
+import { test, expect } from '@playwright/test'
+
+test('project page displays correctly', async ({ page }) => {
+	await page.goto('/mod/sodium')
+
+	// Check title is visible
+	await expect(page.locator('h1')).toContainText('Sodium')
+
+	// Check download button
+	const downloadBtn = page.locator('button:has-text("Download")')
+	await expect(downloadBtn).toBeVisible()
+
+	// Click version dropdown
+	await page.click('[data-testid="version-selector"]')
+	await expect(page.locator('.version-list')).toBeVisible()
+})
+
+test('search functionality', async ({ page }) => {
+	await page.goto('/')
+
+	// Type in search
+	await page.fill('input[type="search"]', 'optimization')
+	await page.press('input[type="search"]', 'Enter')
+
+	// Wait for results
+	await page.waitForSelector('.project-card')
+
+	// Verify results
+	const cards = await page.locator('.project-card').count()
+	expect(cards).toBeGreaterThan(0)
+})
+```
+
+**Run E2E tests**:
+
+```bash
+# Install Playwright
+pnpm exec playwright install
+
+# Run tests
+pnpm --filter @modrinth/frontend test:e2e
+
+# Run with UI
+pnpm exec playwright test --ui
+```
+
+### Linting
+
+```bash
+# Run ESLint
+pnpm lint
+
+# Auto-fix issues
+pnpm fix
+
+# Lint specific package
+pnpm --filter @modrinth/frontend lint
+```
+
+### Type Checking
+
+```bash
+# Check types (all packages)
+pnpm type-check
+
+# Check specific package
+pnpm --filter @modrinth/frontend type-check
+```
+
+## Backend Testing (Rust)
+
+### Running Tests
+
+```bash
+# Run all tests (from root)
+cargo test --workspace
+
+# Run Labrinth tests
+cargo test -p labrinth --all-targets
+
+# Run app tests (Theseus)
+cargo test -p theseus --all-targets
+
+# Run specific test
+cargo test -p labrinth test_create_project
+
+# Run with output
+cargo test -p labrinth -- --nocapture
+
+# Run in parallel (faster)
+cargo test -p labrinth -- --test-threads=4
+```
+
+### Unit Tests
+
+```rust apps/labrinth/src/models/project.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_project_slug_validation() {
+        assert!(is_valid_slug("my-mod"));
+        assert!(is_valid_slug("my_mod"));
+        assert!(!is_valid_slug("My Mod"));  // Spaces not allowed
+        assert!(!is_valid_slug("my-mod!"));  // Special chars not allowed
+    }
+
+    #[test]
+    fn test_project_type_parsing() {
+        assert_eq!(ProjectType::from_str("mod"), Ok(ProjectType::Mod));
+        assert_eq!(ProjectType::from_str("modpack"), Ok(ProjectType::Modpack));
+        assert!(ProjectType::from_str("invalid").is_err());
+    }
+}
+```
+
+### Integration Tests
+
+Integration tests go in `src/test/` or `tests/` directory.
+
+```rust apps/labrinth/src/test/project.rs
+use actix_web::test;
+use sqlx::PgPool;
+
+#[actix_rt::test]
+async fn test_create_and_get_project() {
+    // Setup test database
+    let pool = setup_test_db().await;
+    
+    // Create project
+    let project = create_project(
+        "test-mod",
+        "Test Mod",
+        &pool,
+    ).await.unwrap();
+    
+    assert_eq!(project.slug, "test-mod");
+    assert_eq!(project.title, "Test Mod");
+    
+    // Fetch project
+    let fetched = get_project(&project.id, &pool).await.unwrap();
+    assert_eq!(fetched.id, project.id);
+    
+    // Cleanup
+    cleanup_test_db(&pool).await;
+}
+
+#[actix_rt::test]
+async fn test_project_not_found() {
+    let pool = setup_test_db().await;
+    
+    let result = get_project("nonexistent", &pool).await;
+    assert!(result.is_err());
+    
+    cleanup_test_db(&pool).await;
+}
+```
+
+### API Route Tests
+
+```rust apps/labrinth/src/test/routes.rs
+use actix_web::{test, App};
+use crate::routes::v3;
+
+#[actix_rt::test]
+async fn test_get_project_endpoint() {
+    let pool = setup_test_db().await;
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .configure(v3::projects::config)
+    ).await;
+    
+    let req = test::TestRequest::get()
+        .uri("/v3/project/sodium")
+        .to_request();
+    
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), 200);
+    
+    let body: Project = test::read_body_json(resp).await;
+    assert_eq!(body.slug, "sodium");
+}
+
+#[actix_rt::test]
+async fn test_create_project_requires_auth() {
+    let app = test::init_service(
+        App::new().configure(v3::projects::config)
+    ).await;
+    
+    let req = test::TestRequest::post()
+        .uri("/v3/project")
+        .set_json(&json!({
+            "title": "Test",
+            "slug": "test",
+        }))
+        .to_request();
+    
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), 401);  // Unauthorized
+}
+```
+
+### Database Tests
+
+```rust apps/labrinth/src/test/database.rs
+use sqlx::{PgPool, postgres::PgPoolOptions};
+
+pub async fn setup_test_db() -> PgPool {
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect("postgres://labrinth:labrinth@localhost/labrinth_test")
+        .await
+        .expect("Failed to connect to test database");
+    
+    // Run migrations
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run migrations");
+    
+    pool
+}
+
+pub async fn cleanup_test_db(pool: &PgPool) {
+    // Truncate all tables
+    sqlx::query!("TRUNCATE TABLE projects CASCADE")
+        .execute(pool)
+        .await
+        .expect("Failed to cleanup database");
+}
+```
+
+### Benchmark Tests
+
+```rust benches/search_benchmark.rs
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use labrinth::search::search_projects;
+
+fn benchmark_search(c: &mut Criterion) {
+    c.bench_function("search projects", |b| {
+        b.iter(|| {
+            search_projects(
+                black_box("optimization"),
+                black_box(vec!["mod"]),
+                black_box(20),
+            )
+        });
+    });
+}
+
+criterion_group!(benches, benchmark_search);
+criterion_main!(benches);
+```
+
+Run benchmarks:
+```bash
+cargo bench -p labrinth
+```
+
+### Linting (Clippy)
+
+```bash
+# Run clippy
+cargo clippy -p labrinth --all-targets
+cargo clippy -p theseus --all-targets
+
+# Run clippy with warnings as errors (CI mode)
+cargo clippy -p labrinth --all-targets -- -D warnings
+```
+
+<Warning>
+**Zero warnings required** - CI will fail if there are any clippy warnings.
+</Warning>
+
+### Code Formatting
+
+```bash
+# Check formatting
+cargo fmt --check
+
+# Auto-format
+cargo fmt
+```
+
+## Test Coverage
+
+### Frontend Coverage
+
+```bash
+# Generate coverage report
+pnpm --filter @modrinth/frontend test --coverage
+
+# Open coverage report
+open coverage/index.html
+```
+
+### Backend Coverage (Tarpaulin)
+
+```bash
+# Install tarpaulin
+cargo install cargo-tarpaulin
+
+# Generate coverage
+cargo tarpaulin -p labrinth --out Html
+
+# Open report
+open tarpaulin-report.html
+```
+
+## CI/CD Testing
+
+GitHub Actions runs tests automatically on:
+
+- Every push to any branch
+- Every pull request
+- Merge queue checks
+
+### CI Workflow
+
+```yaml .github/workflows/check-rust.yml
+name: Check Rust
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+      
+      - name: Run tests
+        run: cargo test --workspace --all-targets
+      
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      
+      - name: Check formatting
+        run: cargo fmt --check
+```
+
+### Frontend CI
+
+```yaml .github/workflows/check-generic.yml
+name: Check Frontend
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9.15.0
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      
+      - run: pnpm install
+      
+      - run: pnpm lint
+      
+      - run: pnpm type-check
+      
+      - run: pnpm test
+```
+
+## Pre-PR Checklist
+
+Before opening a pull request, ensure:
+
+<Steps>
+  <Step title="Frontend Checks">
+    ```bash
+    # Run all pre-PR checks
+    pnpm prepr
+    
+    # Or run specific checks:
+    pnpm prepr:frontend:web   # Website
+    pnpm prepr:frontend:app   # Desktop app
+    pnpm prepr:frontend:lib   # Shared libraries
+    ```
+    
+    This runs:
+    - ESLint
+    - Prettier
+    - TypeScript type checking
+    - Tests
+  </Step>
+  
+  <Step title="Backend Checks (Labrinth)">
+    ```bash
+    cd apps/labrinth
+    
+    # Clippy (ZERO warnings required)
+    cargo clippy -p labrinth --all-targets
+    
+    # Format check
+    cargo fmt --check
+    
+    # Prepare SQLx cache
+    cargo sqlx prepare
+    
+    # Tests (optional - takes time)
+    cargo test -p labrinth --all-targets
+    ```
+  </Step>
+  
+  <Step title="Build Verification">
+    ```bash
+    # Ensure everything builds
+    pnpm build
+    ```
+  </Step>
+</Steps>
+
+## Testing Best Practices
+
+### General Principles
+
+1. **Test behavior, not implementation** - Focus on what code does, not how it does it
+2. **Keep tests simple** - One assertion per test when possible
+3. **Use descriptive names** - Test names should explain what they test
+4. **Avoid test interdependence** - Tests should run independently
+5. **Mock external dependencies** - Don't hit real APIs or databases in unit tests
+
+### Frontend Best Practices
+
+```typescript
+// Good: Test user-facing behavior
+it('displays error message when login fails', async () => {
+	const wrapper = mount(LoginForm)
+	await wrapper.find('form').trigger('submit')
+	expect(wrapper.text()).toContain('Invalid credentials')
+})
+
+// Bad: Test implementation details
+it('sets errorMessage state to string', async () => {
+	const wrapper = mount(LoginForm)
+	await wrapper.vm.handleSubmit()
+	expect(wrapper.vm.errorMessage).toBe('Invalid credentials')
+})
+```
+
+### Backend Best Practices
+
+```rust
+// Good: Descriptive test name
+#[test]
+fn test_project_slug_rejects_special_characters() {
+    assert!(!is_valid_slug("my-mod!"));
+}
+
+// Bad: Unclear test name
+#[test]
+fn test_slug() {
+    assert!(!is_valid_slug("my-mod!"));
+}
+```
+
+### Mocking
+
+**Frontend**:
+```typescript
+import { vi } from 'vitest'
+
+vi.mock('@modrinth/api-client', () => ({
+	labrinth: {
+		projects_v3: {
+			get: vi.fn().mockResolvedValue({ id: '1', title: 'Test' }),
+		},
+	},
+}))
+```
+
+**Rust**:
+```rust
+use mockall::predicate::*;
+use mockall::mock;
+
+mock! {
+    pub Database {
+        async fn get_project(&self, id: &str) -> Result<Project, Error>;
+    }
+}
+```
+
+## Debugging Tests
+
+### Frontend
+
+```bash
+# Run specific test
+pnpm test -- ProjectCard.test.ts
+
+# Run in watch mode
+pnpm test -- --watch
+
+# Run with browser DevTools (Playwright)
+pnpm exec playwright test --debug
+```
+
+### Backend
+
+```bash
+# Run specific test with output
+cargo test test_create_project -- --nocapture
+
+# Run with backtrace
+RUST_BACKTRACE=1 cargo test
+
+# Run with logging
+RUST_LOG=debug cargo test
+```
+
+## Performance Testing
+
+### Load Testing (Backend)
+
+Use tools like [k6](https://k6.io/) or [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html):
+
+```bash
+# Apache Bench: 1000 requests, 10 concurrent
+ab -n 1000 -c 10 http://localhost:8000/v3/project/sodium
+
+# k6 load test
+k6 run load-test.js
+```
+
+```javascript load-test.js
+import http from 'k6/http'
+import { check } from 'k6'
+
+export const options = {
+	vus: 10,
+	duration: '30s',
+}
+
+export default function () {
+	const res = http.get('http://localhost:8000/v3/project/sodium')
+	check(res, {
+		'status is 200': (r) => r.status === 200,
+		'response time < 500ms': (r) => r.timings.duration < 500,
+	})
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Code Style" icon="code" href="/development/code-style">
+    Follow coding standards and conventions
+  </Card>
+  
+  <Card title="Local Setup" icon="server" href="/development/local-setup">
+    Set up local development environment
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/development/deployment">
+    Learn about CI/CD and deployment
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Submit your first pull request
+  </Card>
+</CardGroup>

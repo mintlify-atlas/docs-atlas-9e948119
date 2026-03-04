@@ -1,0 +1,494 @@
+---
+title: Rate Limits
+description: Understanding API rate limits and how to handle them effectively
+---
+
+The Modrinth API implements rate limiting to ensure fair usage and maintain service quality for all users. Rate limits are applied per IP address using the GCRA (Generic Cell Rate Algorithm).
+
+## Rate Limit Configuration
+
+### Default Limits
+
+The API enforces the following rate limits:
+
+- **300 requests per minute** per IP address
+- **Burst capacity**: 300 requests
+
+<Note>
+Rate limits are the same whether you use an authenticated request (with a token) or an unauthenticated request.
+</Note>
+
+### How GCRA Works
+
+Modrinth uses GCRA for smooth rate limiting:
+
+- Requests are allowed at a steady rate (300/minute = 5 requests/second)
+- You can burst up to 300 requests at once
+- After a burst, you must wait for the rate limit to replenish
+- The algorithm prevents thundering herd effects
+
+## Rate Limit Headers
+
+Every API response includes rate limit information in the headers:
+
+```http
+X-Ratelimit-Limit: 300
+X-Ratelimit-Remaining: 245
+X-Ratelimit-Reset: 42
+```
+
+### Header Descriptions
+
+<ParamField header="X-Ratelimit-Limit" type="integer">
+  The maximum number of requests allowed per minute (always 300)
+</ParamField>
+
+<ParamField header="X-Ratelimit-Remaining" type="integer">
+  The number of requests remaining in the current rate limit window
+</ParamField>
+
+<ParamField header="X-Ratelimit-Reset" type="integer">
+  The time in seconds until the rate limit fully resets
+</ParamField>
+
+### Monitoring Rate Limits
+
+Always check these headers to avoid hitting rate limits:
+
+```javascript
+const response = await fetch('https://api.modrinth.com/v2/search', {
+  headers: { 'User-Agent': 'my-app/1.0.0' }
+});
+
+const limit = response.headers.get('X-Ratelimit-Limit');
+const remaining = response.headers.get('X-Ratelimit-Remaining');
+const reset = response.headers.get('X-Ratelimit-Reset');
+
+console.log(`Rate limit: ${remaining}/${limit}, resets in ${reset}s`);
+
+if (remaining < 10) {
+  console.warn('Approaching rate limit!');
+}
+```
+
+## Rate Limit Exceeded
+
+When you exceed the rate limit, the API returns a **429 Too Many Requests** response.
+
+### 429 Response Example
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+X-Ratelimit-Limit: 300
+X-Ratelimit-Remaining: 0
+X-Ratelimit-Reset: 15
+Retry-After: 15
+```
+
+```json
+{
+  "error": "ratelimit_error",
+  "description": "You are being rate-limited. Please wait 15000 milliseconds. 0/300 remaining."
+}
+```
+
+### Response Headers on 429
+
+<ParamField header="Retry-After" type="integer">
+  The number of seconds to wait before making another request
+</ParamField>
+
+<ParamField header="X-Ratelimit-Remaining" type="integer">
+  Will be 0 when rate limited
+</ParamField>
+
+<ParamField header="X-Ratelimit-Reset" type="integer">
+  Seconds until you can make requests again
+</ParamField>
+
+## Handling Rate Limits
+
+### Basic Retry Logic
+
+Implement exponential backoff when you receive a 429:
+
+```javascript
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'User-Agent': 'my-app/1.0.0',
+        ...options.headers
+      }
+    });
+    
+    if (response.status !== 429) {
+      return response;
+    }
+    
+    // Rate limited - wait before retrying
+    const retryAfter = response.headers.get('Retry-After');
+    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, i) * 1000;
+    
+    console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+
+// Usage
+try {
+  const response = await fetchWithRetry('https://api.modrinth.com/v2/search');
+  const data = await response.json();
+} catch (error) {
+  console.error('Request failed:', error);
+}
+```
+
+### Advanced Rate Limit Management
+
+Use a token bucket or queue to manage requests:
+
+```javascript
+class RateLimiter {
+  constructor(maxRequests = 300, perMilliseconds = 60000) {
+    this.maxRequests = maxRequests;
+    this.perMilliseconds = perMilliseconds;
+    this.requests = [];
+  }
+  
+  async waitForToken() {
+    const now = Date.now();
+    // Remove requests older than the time window
+    this.requests = this.requests.filter(
+      time => now - time < this.perMilliseconds
+    );
+    
+    if (this.requests.length >= this.maxRequests) {
+      const oldestRequest = this.requests[0];
+      const waitTime = this.perMilliseconds - (now - oldestRequest);
+      
+      console.log(`Rate limit reached. Waiting ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      
+      return this.waitForToken();
+    }
+    
+    this.requests.push(now);
+  }
+  
+  async fetch(url, options = {}) {
+    await this.waitForToken();
+    return fetch(url, {
+      ...options,
+      headers: {
+        'User-Agent': 'my-app/1.0.0',
+        ...options.headers
+      }
+    });
+  }
+}
+
+// Usage
+const limiter = new RateLimiter();
+
+for (let i = 0; i < 1000; i++) {
+  const response = await limiter.fetch('https://api.modrinth.com/v2/search');
+  console.log(`Request ${i + 1} completed`);
+}
+```
+
+### Python Example with Backoff
+
+```python
+import requests
+import time
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
+def create_session():
+    session = requests.Session()
+    
+    # Configure retry strategy for rate limits
+    retry_strategy = Retry(
+        total=5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST", "PUT", "DELETE"],
+        backoff_factor=2  # 2, 4, 8, 16, 32 seconds
+    )
+    
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    
+    return session
+
+def make_request(session, url):
+    headers = {'User-Agent': 'my-app/1.0.0'}
+    
+    response = session.get(url, headers=headers)
+    
+    # Check remaining rate limit
+    remaining = response.headers.get('X-Ratelimit-Remaining')
+    if remaining and int(remaining) < 10:
+        print(f"Warning: Only {remaining} requests remaining")
+    
+    return response
+
+# Usage
+session = create_session()
+response = make_request(session, 'https://api.modrinth.com/v2/search')
+print(response.json())
+```
+
+## Best Practices
+
+### 1. Respect Rate Limit Headers
+
+Always check `X-Ratelimit-Remaining` before making bulk requests:
+
+```javascript
+if (remaining < requiredRequests) {
+  const waitTime = resetSeconds * 1000;
+  await sleep(waitTime);
+}
+```
+
+### 2. Implement Caching
+
+Cache API responses to reduce the number of requests:
+
+```javascript
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function fetchWithCache(url) {
+  const cached = cache.get(url);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'my-app/1.0.0' }
+  });
+  const data = await response.json();
+  
+  cache.set(url, { data, timestamp: Date.now() });
+  return data;
+}
+```
+
+### 3. Batch Requests
+
+Use bulk endpoints when available:
+
+```bash
+# Instead of multiple single requests
+curl "https://api.modrinth.com/v2/project/fabric-api"
+curl "https://api.modrinth.com/v2/project/sodium"
+curl "https://api.modrinth.com/v2/project/lithium"
+
+# Use the bulk endpoint
+curl "https://api.modrinth.com/v2/projects?ids=[\"fabric-api\",\"sodium\",\"lithium\"]"
+```
+
+### 4. Spread Out Requests
+
+Don't burst all requests at once. Spread them over time:
+
+```javascript
+async function processItems(items, processFn, requestsPerSecond = 5) {
+  const delay = 1000 / requestsPerSecond;
+  
+  for (const item of items) {
+    await processFn(item);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+}
+
+// Process 300 items at 5 requests/second (60 seconds total)
+await processItems(projects, async (project) => {
+  const response = await fetch(`https://api.modrinth.com/v2/project/${project}`);
+  return response.json();
+});
+```
+
+### 5. Use Conditional Requests
+
+Use `If-None-Match` headers with ETags to avoid downloading unchanged data:
+
+```javascript
+const etags = new Map();
+
+async function fetchConditional(url) {
+  const headers = { 'User-Agent': 'my-app/1.0.0' };
+  const etag = etags.get(url);
+  
+  if (etag) {
+    headers['If-None-Match'] = etag;
+  }
+  
+  const response = await fetch(url, { headers });
+  
+  if (response.status === 304) {
+    console.log('Data unchanged, using cached version');
+    return null; // Use cached data
+  }
+  
+  // Store new ETag
+  const newEtag = response.headers.get('ETag');
+  if (newEtag) {
+    etags.set(url, newEtag);
+  }
+  
+  return response.json();
+}
+```
+
+### 6. Monitor Your Usage
+
+Track your API usage over time:
+
+```javascript
+class UsageMonitor {
+  constructor() {
+    this.requests = [];
+    this.rateLimitHits = 0;
+  }
+  
+  recordRequest(response) {
+    this.requests.push({
+      timestamp: Date.now(),
+      status: response.status,
+      remaining: response.headers.get('X-Ratelimit-Remaining')
+    });
+    
+    if (response.status === 429) {
+      this.rateLimitHits++;
+    }
+  }
+  
+  getStats() {
+    const now = Date.now();
+    const lastMinute = this.requests.filter(
+      r => now - r.timestamp < 60000
+    );
+    
+    return {
+      totalRequests: this.requests.length,
+      requestsLastMinute: lastMinute.length,
+      rateLimitHits: this.rateLimitHits
+    };
+  }
+}
+```
+
+## Rate Limit Exemptions
+
+### Internal Rate Limit Key
+
+Modrinth provides a special rate limit bypass key for internal services. This is not available to public API users.
+
+<Warning>
+Do not attempt to use or guess the internal rate limit key. Unauthorized use may result in your IP being blocked.
+</Warning>
+
+### Requesting Higher Limits
+
+If you have a legitimate use case requiring higher rate limits:
+
+1. **Document your use case**: Explain why you need higher limits
+2. **Show optimization efforts**: Demonstrate you've implemented caching and batching
+3. **Provide contact information**: Include your project details and contact info
+4. **Contact Modrinth**: Email [admin@modrinth.com](mailto:admin@modrinth.com)
+
+<Note>
+Higher rate limits are granted on a case-by-case basis for projects that benefit the Modrinth ecosystem.
+</Note>
+
+## Cloudflare Integration
+
+Modrinth uses Cloudflare for DDoS protection. The API checks for the `CF-Connecting-IP` header when Cloudflare integration is enabled.
+
+### IP Detection
+
+Rate limits are applied based on:
+1. `CF-Connecting-IP` header (if Cloudflare is enabled)
+2. Request peer address (fallback)
+
+<Warning>
+Using a proxy or VPN may cause you to share a rate limit with other users on the same IP address.
+</Warning>
+
+## Troubleshooting
+
+### Issue: Rate Limited Despite Low Usage
+
+**Possible causes:**
+- Sharing an IP with other users (VPN, corporate network, cloud provider)
+- Multiple applications using the same IP
+- Burst of requests exceeding the limit
+
+**Solutions:**
+- Implement request spreading (5 requests/second max)
+- Use caching to reduce requests
+- Contact Modrinth if you have a dedicated IP and still face issues
+
+### Issue: Inconsistent Rate Limit Headers
+
+**Possible causes:**
+- Redis connectivity issues (API falls back to reduced limits)
+- Multiple API servers with slightly different state
+
+**Solutions:**
+- Don't rely on exact values, use headers as guidance
+- Implement retry logic for all requests
+
+### Issue: 401 Instead of 429
+
+**Cause:**
+If the API cannot determine your IP address, you'll receive a 401 error:
+
+```json
+{
+  "error": "unauthorized",
+  "description": "Unable to obtain user IP address!"
+}
+```
+
+**Solution:**
+- Check your network configuration
+- Ensure you're not blocking necessary headers
+- Contact support if the issue persists
+
+## Summary
+
+<CardGroup cols={2}>
+  <Card title="Current Limit" icon="gauge">
+    **300 requests per minute** per IP address with burst capacity
+  </Card>
+  <Card title="Headers" icon="chart-simple">
+    Monitor `X-Ratelimit-Remaining` and `X-Ratelimit-Reset` headers
+  </Card>
+  <Card title="429 Response" icon="octagon-exclamation">
+    Implement exponential backoff using the `Retry-After` header
+  </Card>
+  <Card title="Best Practices" icon="star">
+    Cache responses, batch requests, and spread traffic over time
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api/errors">
+    Learn about all API error codes and responses
+  </Card>
+  <Card title="API Overview" icon="book" href="/api/overview">
+    Return to the API overview page
+  </Card>
+</CardGroup>

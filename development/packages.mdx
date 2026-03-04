@@ -1,0 +1,682 @@
+---
+title: Packages
+description: Shared libraries and packages in the Modrinth monorepo
+---
+
+## Overview
+
+The `packages/` directory contains shared libraries used across multiple applications. These packages are organized into TypeScript (frontend) and Rust (backend) libraries.
+
+## Frontend Packages (TypeScript/Vue)
+
+### @modrinth/ui
+
+**Path**: `packages/ui/`  
+**Description**: Shared Vue component library for web and desktop app
+
+#### Features
+
+- Vue 3 components (buttons, modals, cards, forms)
+- Cross-platform pages (used in both Nuxt and Tauri)
+- Composables and utilities
+- i18n translations (34 languages)
+- Dependency injection providers
+- Storybook component development
+
+#### Structure
+
+```
+packages/ui/src/
+├── components/       # Vue components by domain
+│   ├── base/        # Base UI (Button, Input, Modal)
+│   ├── project/     # Project-related components
+│   ├── version/     # Version components
+│   └── ...
+├── pages/            # Cross-platform pages
+├── composables/      # Vue composables
+├── providers/        # DI context providers
+├── utils/            # Utility functions
+├── locales/          # Translation files (en-US.json, etc.)
+├── styles/           # Tailwind utilities
+└── stories/          # Storybook stories
+```
+
+#### Usage
+
+```typescript
+import { Button, Modal, ProjectCard } from '@modrinth/ui'
+import { injectModrinthClient, provideModrinthClient } from '@modrinth/ui'
+```
+
+#### Color System
+
+Use semantic color variables for theme support:
+
+- **Surfaces**: `bg-surface-1` through `bg-surface-5`
+- **Text**: `text-contrast`, `text-primary`, `text-secondary`
+- **Brand**: `bg-brand`, `text-brand`
+- **Semantic**: `bg-red`, `bg-green`, `bg-orange`, `bg-blue`
+
+See the [Frontend Web](/development/frontend-web#styling) guide for complete color usage.
+
+#### Storybook
+
+Develop components in isolation:
+
+```bash
+pnpm storybook
+```
+
+Access at `http://localhost:6006`
+
+### @modrinth/api-client
+
+**Path**: `packages/api-client/`  
+**Description**: Platform-agnostic API client for Modrinth services
+
+#### Features
+
+- Multi-API support (Labrinth, Archon, Kyros, ISO3166)
+- Platform variants:
+  - `GenericModrinthClient` - Node/browser (uses ofetch)
+  - `NuxtModrinthClient` - Nuxt SSR-aware (uses $fetch)
+  - `TauriModrinthClient` - Tauri (uses @tauri-apps/plugin-http)
+- Feature system (auth, retry, circuit breaker)
+- XHR upload with progress tracking
+- WebSocket support for real-time events
+- Type-safe API methods
+
+#### Architecture
+
+```
+Request Flow:
+  Module Method → client.request() → Feature Chain → Platform executeRequest()
+```
+
+#### Module Structure
+
+```typescript
+client.labrinth.projects_v2
+client.labrinth.projects_v3
+client.labrinth.versions_v3
+client.labrinth.users_v2
+client.archon.servers_v0
+client.archon.servers_v1
+client.archon.backups_v1
+client.kyros.files_v0
+client.iso3166.data
+```
+
+#### Usage Example
+
+```typescript
+import { NuxtModrinthClient, AuthFeature } from '@modrinth/api-client'
+
+const client = new NuxtModrinthClient({
+	userAgent: 'my-app/1.0.0',
+	features: [
+		new AuthFeature({
+			token: async () => auth.value.token,
+		}),
+	],
+})
+
+// Fetch project
+const project = await client.labrinth.projects_v3.get('sodium')
+
+// Search with filters
+const results = await client.labrinth.search_v3.search({
+	query: 'optimization',
+	facets: [['categories:optimization'], ['project_type:mod']],
+	limit: 20,
+})
+```
+
+#### Features (Middleware)
+
+**AuthFeature**: Injects Bearer token
+```typescript
+new AuthFeature({ token: 'mrp_...' })
+new AuthFeature({ token: async () => getToken() })
+```
+
+**RetryFeature**: Exponential backoff retry
+```typescript
+new RetryFeature({
+	maxAttempts: 3,
+	backoffStrategy: 'exponential',
+	initialDelay: 1000,
+})
+```
+
+**CircuitBreakerFeature**: Prevents cascade failures
+```typescript
+new CircuitBreakerFeature({
+	maxFailures: 3,
+	resetTimeout: 30000,
+})
+```
+
+#### File Uploads
+
+```typescript
+const handle = client.kyros.files_v0.uploadFile(path, file, {
+	onProgress: ({ progress }) => {
+		uploadProgress.value = Math.round(progress * 100)
+	},
+})
+
+// Cancel if needed
+handle.cancel()
+
+// Wait for completion
+await handle.promise
+```
+
+### @modrinth/assets
+
+**Path**: `packages/assets/`  
+**Description**: Styling, design tokens, and auto-generated icons
+
+#### Contents
+
+- **Tailwind preset** (`tailwind-preset.ts`)
+- **CSS variables** (`styles/variables.scss`) - theme tokens
+- **SVG icons** (auto-generated from `icons/` directory)
+- **Semantic color tokens**
+
+#### Adding Icons
+
+```bash
+# Add SVG file to packages/assets/icons/
+pnpm icons:add my-icon.svg
+
+# Icons are auto-generated and exported
+import { MyIcon } from '@modrinth/assets'
+```
+
+### @modrinth/utils
+
+**Path**: `packages/utils/`  
+**Description**: Shared utility functions
+
+```typescript
+import { formatNumber, debounce, formatDate } from '@modrinth/utils'
+
+const downloads = formatNumber(1234567) // "1.2M"
+const timestamp = formatDate(new Date()) // "2 hours ago"
+```
+
+### @modrinth/blog
+
+**Path**: `packages/blog/`  
+**Description**: Blog system and changelog data
+
+- Blog post rendering
+- Changelog parsing
+- Markdown processing
+
+### @modrinth/moderation
+
+**Path**: `packages/moderation/`  
+**Description**: Moderation utilities and content filtering
+
+- Content censoring
+- Profanity detection
+- User report handling
+
+### @modrinth/tooling-config
+
+**Path**: `packages/tooling-config/`  
+**Description**: Shared ESLint, Prettier, and TypeScript configurations
+
+```json package.json
+{
+	"prettier": "@modrinth/tooling-config/prettier.config.cjs",
+	"eslintConfig": {
+		"extends": "@modrinth/tooling-config/eslint.config.js"
+	}
+}
+```
+
+## Rust Packages
+
+### theseus (app-lib)
+
+**Path**: `packages/app-lib/`  
+**Crate**: `theseus`  
+**Description**: Desktop app backend library
+
+#### Features
+
+- **Profile management**: Create and manage Minecraft instances
+- **Mod installation**: Install from Modrinth or local files
+- **Game launching**: Launch Minecraft with mods
+- **Metadata**: Minecraft, Forge, Fabric, Quilt version data
+- **Java detection**: Auto-detect and download Java runtimes
+- **Database**: SQLite for local state
+- **Analytics**: Track usage (opt-in)
+
+#### Core APIs
+
+```rust
+use theseus::profile::Profile;
+use theseus::pack::install_mod;
+use theseus::launcher::launch;
+
+// Create profile
+let profile = Profile::create("My Modpack", "1.20.1", "fabric").await?;
+
+// Install mod
+install_mod(&profile.id, "sodium", None).await?;
+
+// Launch game
+let process = launch(&profile.id, None, None).await?;
+```
+
+See [Desktop App](/development/desktop-app) for complete documentation.
+
+### daedalus
+
+**Path**: `packages/daedalus/`  
+**Description**: Minecraft and mod loader metadata library
+
+#### Features
+
+- Minecraft version manifests
+- Forge version data
+- Fabric loader and mappings
+- Quilt loader versions
+- Modpack format parsing (mrpack, CurseForge)
+
+#### Usage
+
+```rust
+use daedalus::minecraft::VersionManifest;
+use daedalus::modded::LoaderVersion;
+
+// Get Minecraft versions
+let manifest = VersionManifest::fetch().await?;
+let version_1_20_1 = manifest.get_version("1.20.1")?;
+
+// Get Fabric versions
+let fabric_versions = LoaderVersion::fetch_fabric("1.20.1").await?;
+```
+
+### ariadne
+
+**Path**: `packages/ariadne/`  
+**Description**: Analytics library for tracking usage and events
+
+#### Features
+
+- Event tracking
+- ClickHouse integration
+- Privacy-preserving analytics
+- Opt-in/opt-out support
+
+```rust
+use ariadne::{Event, track};
+
+track(Event::Download {
+    version_id: "abc123",
+    user_id: Some("user_456"),
+}).await?;
+```
+
+### modrinth-log
+
+**Path**: `packages/modrinth-log/`  
+**Description**: Logging utilities with tracing integration
+
+```rust
+use modrinth_log::{info, error};
+
+info!("Server started on port {}", 8000);
+error!("Failed to connect to database: {}", err);
+```
+
+### modrinth-util
+
+**Path**: `packages/modrinth-util/`  
+**Description**: General Rust utilities
+
+- String utilities
+- Error handling helpers
+- Type conversions
+
+### modrinth-maxmind
+
+**Path**: `packages/modrinth-maxmind/`  
+**Description**: MaxMind GeoIP integration
+
+```rust
+use modrinth_maxmind::GeoIp;
+
+let geoip = GeoIp::new("/path/to/GeoLite2-City.mmdb")?;
+let location = geoip.lookup("8.8.8.8")?;
+```
+
+### muralpay
+
+**Path**: `packages/muralpay/`  
+**Description**: Payment processing (Stripe integration)
+
+```rust
+use muralpay::{create_payment_intent, PaymentIntent};
+
+let intent = create_payment_intent(
+    1000, // $10.00
+    "usd",
+    "user_id",
+).await?;
+```
+
+### path-util
+
+**Path**: `packages/path-util/`  
+**Description**: Cross-platform path utilities
+
+```rust
+use path_util::{normalize_path, get_app_data_dir};
+
+let normalized = normalize_path("/foo/../bar"); // "/bar"
+let app_dir = get_app_data_dir()?; // OS-specific app data directory
+```
+
+### sqlx-tracing
+
+**Path**: `packages/sqlx-tracing/`  
+**Description**: SQLx query tracing and logging
+
+```rust
+use sqlx_tracing::TracingExecutor;
+
+let executor = TracingExecutor::new(pool);
+// Queries are automatically logged with tracing
+```
+
+### labrinth-derive
+
+**Path**: `packages/labrinth-derive/`  
+**Description**: Derive macros for Labrinth models
+
+```rust
+use labrinth_derive::Queryable;
+
+#[derive(Queryable)]
+struct Project {
+    id: String,
+    slug: String,
+    title: String,
+}
+```
+
+## Package Dependencies
+
+### Workspace Dependencies
+
+Packages reference each other using workspace protocol:
+
+**package.json**:
+```json
+{
+	"dependencies": {
+		"@modrinth/ui": "workspace:*",
+		"@modrinth/api-client": "workspace:*",
+		"@modrinth/assets": "workspace:*"
+	}
+}
+```
+
+**Cargo.toml**:
+```toml
+[dependencies]
+theseus = { path = "../packages/app-lib" }
+daedalus = { path = "../packages/daedalus" }
+ariadne = { path = "../packages/ariadne" }
+```
+
+### Dependency Graph
+
+```
+apps/frontend/
+  └── @modrinth/ui
+      ├── @modrinth/api-client
+      ├── @modrinth/assets
+      └── @modrinth/utils
+
+apps/app-frontend/
+  └── @modrinth/ui
+      ├── @modrinth/api-client
+      └── @modrinth/assets
+
+apps/app/
+  └── theseus (app-lib)
+      ├── daedalus
+      ├── ariadne
+      └── modrinth-util
+
+apps/labrinth/
+  ├── ariadne
+  ├── daedalus
+  ├── modrinth-log
+  ├── modrinth-util
+  ├── modrinth-maxmind
+  └── muralpay
+```
+
+## Creating a New Package
+
+### TypeScript Package
+
+<Steps>
+  <Step title="Create Directory">
+    ```bash
+    mkdir packages/my-package
+    cd packages/my-package
+    ```
+  </Step>
+  
+  <Step title="Initialize package.json">
+    ```json package.json
+    {
+      "name": "@modrinth/my-package",
+      "version": "0.0.0",
+      "type": "module",
+      "main": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "exports": {
+        ".": {
+          "types": "./dist/index.d.ts",
+          "import": "./dist/index.js"
+        }
+      },
+      "scripts": {
+        "build": "tsup src/index.ts --format esm --dts",
+        "lint": "eslint .",
+        "fix": "eslint . --fix"
+      },
+      "devDependencies": {
+        "@modrinth/tooling-config": "workspace:*",
+        "tsup": "^8.0.0",
+        "typescript": "^5.0.0"
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Create Source Files">
+    ```typescript src/index.ts
+    export function myUtility() {
+      return 'Hello from my package'
+    }
+    ```
+  </Step>
+  
+  <Step title="Add TypeScript Config">
+    ```json tsconfig.json
+    {
+      "extends": "@modrinth/tooling-config/tsconfig.json",
+      "compilerOptions": {
+        "outDir": "./dist"
+      },
+      "include": ["src"]
+    }
+    ```
+  </Step>
+  
+  <Step title="Update pnpm-workspace.yaml">
+    Already includes `packages/*`, so no change needed.
+  </Step>
+  
+  <Step title="Build and Test">
+    ```bash
+    pnpm build
+    
+    # Use in another package
+    pnpm add @modrinth/my-package --filter @modrinth/frontend
+    ```
+  </Step>
+</Steps>
+
+### Rust Package
+
+<Steps>
+  <Step title="Create Crate">
+    ```bash
+    cargo new --lib packages/my-crate
+    ```
+  </Step>
+  
+  <Step title="Update Cargo.toml">
+    ```toml packages/my-crate/Cargo.toml
+    [package]
+    name = "my-crate"
+    version = "0.1.0"
+    edition.workspace = true
+    
+    [dependencies]
+    # Add dependencies
+    
+    [lints]
+    workspace = true
+    ```
+  </Step>
+  
+  <Step title="Add to Workspace">
+    Edit root `Cargo.toml`:
+    ```toml
+    [workspace]
+    members = [
+      # ...
+      "packages/my-crate",
+    ]
+    ```
+  </Step>
+  
+  <Step title="Implement Library">
+    ```rust packages/my-crate/src/lib.rs
+    pub fn my_function() -> String {
+        "Hello from my crate".to_string()
+    }
+    
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        
+        #[test]
+        fn test_my_function() {
+            assert_eq!(my_function(), "Hello from my crate");
+        }
+    }
+    ```
+  </Step>
+  
+  <Step title="Use in Other Crates">
+    ```toml
+    [dependencies]
+    my-crate = { path = "../../packages/my-crate" }
+    ```
+  </Step>
+</Steps>
+
+## Publishing
+
+### Internal Packages
+
+Most packages are internal and not published to npm/crates.io. They're only used within the monorepo.
+
+### Public Packages
+
+Some packages may be published:
+
+- `@modrinth/api-client` - Public npm package
+- `daedalus` - May be published to crates.io
+
+**Publishing to npm**:
+```bash
+cd packages/api-client
+pnpm build
+npm publish --access public
+```
+
+**Publishing to crates.io**:
+```bash
+cd packages/daedalus
+cargo publish
+```
+
+## Best Practices
+
+### Package Design
+
+1. **Single Responsibility**: Each package should have a clear, focused purpose
+2. **Minimal Dependencies**: Avoid heavy dependencies in shared packages
+3. **Platform Agnostic**: Shared code should work across web and app (when possible)
+4. **Type Safety**: Export TypeScript types for all public APIs
+5. **Documentation**: Include README with usage examples
+
+### Versioning
+
+Internal packages use `workspace:*` to always use the local version. Version numbers are primarily for tracking, not for dependency resolution.
+
+### Breaking Changes
+
+When making breaking changes to a shared package:
+
+1. Update all consumers in the same PR
+2. Run full test suite: `pnpm test`
+3. Ensure all apps build: `pnpm build`
+
+### Testing
+
+Test packages in isolation:
+
+```bash
+# TypeScript package
+pnpm --filter @modrinth/my-package test
+
+# Rust crate
+cargo test -p my-crate
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend (Web)" icon="window" href="/development/frontend-web">
+    See how packages are used in the web app
+  </Card>
+  
+  <Card title="Desktop App" icon="desktop" href="/development/desktop-app">
+    Learn about Theseus and app integration
+  </Card>
+  
+  <Card title="Backend (Labrinth)" icon="server" href="/development/backend-labrinth">
+    Explore Rust packages used in the backend
+  </Card>
+  
+  <Card title="Code Style" icon="code" href="/development/code-style">
+    Follow coding standards for packages
+  </Card>
+</CardGroup>

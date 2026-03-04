@@ -1,122 +1,158 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Modrinth",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#04ac5c",
+    "light": "#1fd56c",
+    "dark": "#17221f"
   },
   "favicon": "/favicon.svg",
+  "logo": {
+    "light": "https://media.brand.dev/89bfa130-e54a-4e07-b162-3771fc54ff4d.webp",
+    "dark": "https://media.brand.dev/89bfa130-e54a-4e07-b162-3771fc54ff4d.webp"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/modrinth/code"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/modrinth/code",
+      "discord": "https://discord.modrinth.com"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Platform Guide",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "platform/web-interface",
+              "platform/desktop-app",
+              "platform/features"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "For Creators",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "creators/creating-projects",
+              "creators/managing-versions",
+              "creators/teams-and-permissions",
+              "creators/analytics",
+              "creators/monetization"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "For Players",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "players/installing-mods",
+              "players/creating-modpacks",
+              "players/using-launcher",
+              "players/profiles-and-instances"
+            ]
+          },
+          {
+            "group": "Server Hosting",
+            "pages": [
+              "hosting/getting-started",
+              "hosting/managing-servers",
+              "hosting/backups",
+              "hosting/configuration"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Getting Started",
             "pages": [
-              "api-reference/introduction"
+              "api/overview",
+              "api/authentication",
+              "api/rate-limits",
+              "api/errors"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Core Resources",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/projects",
+              "api/versions",
+              "api/users",
+              "api/teams",
+              "api/collections"
+            ]
+          },
+          {
+            "group": "Content & Search",
+            "pages": [
+              "api/search",
+              "api/tags",
+              "api/categories",
+              "api/analytics"
+            ]
+          },
+          {
+            "group": "Server Hosting API",
+            "pages": [
+              "api/servers",
+              "api/websocket",
+              "api/backups"
+            ]
+          },
+          {
+            "group": "Client Libraries",
+            "pages": [
+              "api/javascript-client",
+              "api/rust-client"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/getting-started",
+              "development/code-style"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture-overview",
+              "development/backend-labrinth",
+              "development/frontend-web",
+              "development/desktop-app",
+              "development/packages"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "development/local-setup",
+              "development/testing",
+              "development/deployment"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

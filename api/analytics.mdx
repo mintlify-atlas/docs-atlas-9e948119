@@ -1,0 +1,441 @@
+---
+title: 'Analytics'
+description: 'Access project analytics including views, downloads, playtime, and revenue data'
+icon: 'chart-line'
+---
+
+## Overview
+
+The Analytics API provides comprehensive metrics for your projects and affiliate codes, including views, downloads, playtime statistics, and revenue data. All analytics data is aggregated into time slices for efficient querying.
+
+<Warning>
+  Analytics endpoints require authentication with appropriate scopes:
+  - `ANALYTICS` scope for views, downloads, and playtime
+  - `PAYOUTS_READ` scope for revenue data
+</Warning>
+
+## Fetch Analytics Data
+
+```bash
+POST /v3/analytics
+```
+
+Fetch analytics data with customizable time ranges, metrics, and bucketing options.
+
+### Request Body
+
+<ParamField body="time_range" type="object" required>
+  Defines the time period and resolution for analytics data.
+  
+  <Expandable title="Time Range Object">
+    <ParamField body="start" type="string" required>
+      Start date/time in ISO 8601 format (RFC 3339)
+      
+      Example: `2024-01-01T00:00:00Z`
+    </ParamField>
+    
+    <ParamField body="end" type="string" required>
+      End date/time in ISO 8601 format (RFC 3339)
+      
+      Example: `2024-01-31T23:59:59Z`
+    </ParamField>
+    
+    <ParamField body="resolution" type="object" required>
+      How to divide the time range into slices.
+      
+      **Options:**
+      - `{ "slices": 30 }` - Fixed number of time slices
+      - `{ "minutes": 60 }` - Each slice is N minutes long
+      
+      **Constraints:**
+      - Minimum resolution: 60 minutes
+      - Maximum slices: 1024
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="return_metrics" type="object" required>
+  Specify which metrics to return and how to group them.
+  
+  <Expandable title="Return Metrics Object">
+    <ParamField body="project_views" type="object">
+      Page view metrics.
+      
+      <Expandable title="Bucket Fields">
+        - `project_id` - Group by project
+        - `domain` - Group by referrer domain
+        - `site_path` - Group by visited path
+        - `monetized` - Group by monetization status
+        - `country` - Group by country (anonymized for fewer than 50 views)
+      </Expandable>
+    </ParamField>
+    
+    <ParamField body="project_downloads" type="object">
+      Download metrics.
+      
+      <Expandable title="Bucket Fields">
+        - `project_id` - Group by project
+        - `version_id` - Group by version
+        - `domain` - Group by referrer domain
+        - `site_path` - Group by download path
+        - `country` - Group by country (anonymized for fewer than 50 downloads)
+      </Expandable>
+    </ParamField>
+    
+    <ParamField body="project_playtime" type="object">
+      Playtime metrics in seconds.
+      
+      <Expandable title="Bucket Fields">
+        - `project_id` - Group by project
+        - `version_id` - Group by version
+        - `loader` - Group by mod loader (Fabric, Forge, etc.)
+        - `game_version` - Group by game version
+      </Expandable>
+    </ParamField>
+    
+    <ParamField body="project_revenue" type="object">
+      Revenue metrics (requires `PAYOUTS_READ` scope).
+      
+      <Expandable title="Bucket Fields">
+        - `project_id` - Group by project
+      </Expandable>
+    </ParamField>
+    
+    <ParamField body="affiliate_code_clicks" type="object">
+      Affiliate code click metrics.
+      
+      <Expandable title="Bucket Fields">
+        - `affiliate_code_id` - Group by affiliate code
+      </Expandable>
+    </ParamField>
+    
+    <ParamField body="affiliate_code_conversions" type="object">
+      Affiliate code conversion metrics.
+      
+      <Expandable title="Bucket Fields">
+        - `affiliate_code_id` - Group by affiliate code
+      </Expandable>
+    </ParamField>
+    
+    <ParamField body="affiliate_code_revenue" type="object">
+      Affiliate code revenue (requires `PAYOUTS_READ` scope).
+      
+      <Expandable title="Bucket Fields">
+        - `affiliate_code_id` - Group by affiliate code
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Response Format
+
+Returns an array of time slices, where each slice contains analytics data for that time period.
+
+<ResponseField name="time_slices" type="array">
+  Array of time slices (length determined by resolution).
+  
+  <Expandable title="Time Slice">
+    <ResponseField name="analytics_data" type="array">
+      Array of analytics data points in this slice.
+      
+      <Expandable title="Analytics Data">
+        Each data point is either project or affiliate code analytics:
+        
+        **Project Analytics:**
+        <ResponseField name="source_project" type="string">
+          Project ID this data is for
+        </ResponseField>
+        
+        <ResponseField name="metric_kind" type="string">
+          Type of metric: `views`, `downloads`, `playtime`, or `revenue`
+        </ResponseField>
+        
+        <ResponseField name="[bucket_fields]" type="varies">
+          Any requested bucket fields (domain, version_id, etc.)
+        </ResponseField>
+        
+        <ResponseField name="[metric_value]" type="number">
+          The metric value:
+          - `views` - View count
+          - `downloads` - Download count
+          - `seconds` - Playtime in seconds
+          - `revenue` - Revenue amount (decimal)
+        </ResponseField>
+        
+        **Affiliate Code Analytics:**
+        <ResponseField name="source_affiliate_code" type="string">
+          Affiliate code ID this data is for
+        </ResponseField>
+        
+        <ResponseField name="metric_kind" type="string">
+          Type: `clicks`, `conversions`, or `revenue`
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic Views and Downloads
+
+```bash
+curl -X POST "https://api.modrinth.com/v3/analytics" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_range": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2024-01-31T23:59:59Z",
+      "resolution": { "slices": 31 }
+    },
+    "return_metrics": {
+      "project_views": {
+        "bucket_by": ["project_id"]
+      },
+      "project_downloads": {
+        "bucket_by": ["project_id"]
+      }
+    }
+  }'
+```
+
+### Downloads by Version
+
+```bash
+curl -X POST "https://api.modrinth.com/v3/analytics" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_range": {
+      "start": "2024-03-01T00:00:00Z",
+      "end": "2024-03-08T00:00:00Z",
+      "resolution": { "slices": 7 }
+    },
+    "return_metrics": {
+      "project_downloads": {
+        "bucket_by": ["project_id", "version_id"]
+      }
+    }
+  }'
+```
+
+### Views by Referrer
+
+```bash
+curl -X POST "https://api.modrinth.com/v3/analytics" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_range": {
+      "start": "2024-03-01T00:00:00Z",
+      "end": "2024-03-02T00:00:00Z",
+      "resolution": { "minutes": 60 }
+    },
+    "return_metrics": {
+      "project_views": {
+        "bucket_by": ["domain", "monetized"]
+      }
+    }
+  }'
+```
+
+### Playtime Statistics
+
+```bash
+curl -X POST "https://api.modrinth.com/v3/analytics" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_range": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2024-02-01T00:00:00Z",
+      "resolution": { "slices": 31 }
+    },
+    "return_metrics": {
+      "project_playtime": {
+        "bucket_by": ["project_id", "loader", "game_version"]
+      }
+    }
+  }'
+```
+
+### Revenue Data
+
+```bash
+curl -X POST "https://api.modrinth.com/v3/analytics" \
+  -H "Authorization: Bearer YOUR_TOKEN_WITH_PAYOUTS_READ" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "time_range": {
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2024-12-31T23:59:59Z",
+      "resolution": { "slices": 12 }
+    },
+    "return_metrics": {
+      "project_revenue": {
+        "bucket_by": ["project_id"]
+      }
+    }
+  }'
+```
+
+### Example Response
+
+```json
+[
+  [
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "views",
+      "domain": "youtube.com",
+      "views": 1523
+    },
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "downloads",
+      "version_id": "XYZ12345",
+      "downloads": 456
+    }
+  ],
+  [
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "views",
+      "domain": "discord.com",
+      "views": 892
+    }
+  ]
+]
+```
+
+## Bucketing Behavior
+
+Bucketing allows you to group analytics data by specific dimensions:
+
+<Accordion title="No Bucketing">
+  When `bucket_by` is empty, all data for that metric is aggregated:
+  
+  ```json
+  {
+    "source_project": "ABCDEFGH",
+    "metric_kind": "views",
+    "views": 5000
+  }
+  ```
+</Accordion>
+
+<Accordion title="Single Bucket">
+  Bucketing by one field creates separate entries:
+  
+  ```json
+  [
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "views",
+      "domain": "youtube.com",
+      "views": 3000
+    },
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "views",
+      "domain": "discord.com",
+      "views": 2000
+    }
+  ]
+  ```
+</Accordion>
+
+<Accordion title="Multiple Buckets">
+  Multiple bucket fields create combinations:
+  
+  ```json
+  [
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "views",
+      "domain": "youtube.com",
+      "monetized": true,
+      "views": 2500
+    },
+    {
+      "source_project": "ABCDEFGH",
+      "metric_kind": "views",
+      "domain": "youtube.com",
+      "monetized": false,
+      "views": 500
+    }
+  ]
+  ```
+</Accordion>
+
+## Data Sources
+
+<CardGroup cols={2}>
+  <Card title="Clickhouse" icon="database">
+    Views, downloads, playtime, and affiliate click data is stored in Clickhouse for high-performance querying
+  </Card>
+  
+  <Card title="PostgreSQL" icon="database">
+    Revenue and conversion data comes from PostgreSQL transaction records
+  </Card>
+</CardGroup>
+
+## Privacy & Anonymization
+
+<Info>
+  Country data is automatically anonymized when counts are below 50 to protect user privacy. Low-traffic countries are reported as "XX".
+</Info>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Resolution Selection">
+    Choose resolution based on your time range:
+    - **Hours**: Use minute-based resolution
+    - **Days/Weeks**: Use 24-96 slices
+    - **Months**: Use 30-31 slices
+    - **Years**: Use 12 or 52 slices
+  </Accordion>
+  
+  <Accordion title="Bucket Strategy">
+    Only bucket by fields you need:
+    - Fewer buckets = faster queries
+    - More buckets = more detailed data
+    - Consider client-side aggregation for flexibility
+  </Accordion>
+  
+  <Accordion title="Time Range Limits">
+    Keep queries reasonable:
+    - Maximum 1024 time slices
+    - Minimum 60-minute resolution
+    - Larger ranges need coarser resolution
+  </Accordion>
+  
+  <Accordion title="Multiple Metrics">
+    Request multiple metrics in one call for efficiency:
+    ```json
+    {
+      "return_metrics": {
+        "project_views": { "bucket_by": [] },
+        "project_downloads": { "bucket_by": [] },
+        "project_playtime": { "bucket_by": [] }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Permissions
+
+Analytics data is filtered by project permissions:
+
+- You can only view analytics for projects where you have `VIEW_ANALYTICS` permission
+- This includes:
+  - Projects you own
+  - Projects where you're a team member with analytics access
+  - Projects in organizations where you have the appropriate role
+
+<Warning>
+  Revenue data requires the `PAYOUTS_READ` scope in addition to `ANALYTICS`. Requests without this scope will return an authentication error when accessing revenue metrics.
+</Warning>

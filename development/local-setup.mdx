@@ -1,0 +1,621 @@
+---
+title: Local Setup
+description: Complete guide to running the Modrinth stack locally
+---
+
+## Overview
+
+This guide covers setting up the complete Modrinth development environment, including the backend API (Labrinth) and all required services.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- [Docker](https://www.docker.com/get-started) and Docker Compose installed
+- [Rust](https://www.rust-lang.org/tools/install) 1.90.0 or higher
+- [Node.js](https://nodejs.org/) 20.x or higher
+- [pnpm](https://pnpm.io/) 9.15.0
+
+## Services Overview
+
+Modrinth uses several backend services:
+
+| Service | Purpose | Port |
+|---------|---------|------|
+| **PostgreSQL** | Primary database | 5432 |
+| **Redis** | Cache and sessions | 6379 |
+| **ClickHouse** | Analytics database | 8123 |
+| **Meilisearch** | Search engine | 7700 |
+| **Mailpit** | Email testing | 8025 (UI), 1025 (SMTP) |
+| **Gotenberg** | PDF generation | 13000 |
+| **Labrinth** | API server | 8000 |
+
+All services are defined in `docker-compose.yml` at the root of the repository.
+
+## Quick Start
+
+<Steps>
+  <Step title="Clone Repository">
+    ```bash
+    git clone https://github.com/modrinth/code.git
+    cd code
+    ```
+  </Step>
+  
+  <Step title="Install Dependencies">
+    ```bash
+    pnpm install
+    ```
+  </Step>
+  
+  <Step title="Start Services">
+    ```bash
+    docker compose up -d
+    ```
+    
+    This starts PostgreSQL, Redis, ClickHouse, Meilisearch, Mailpit, and Gotenberg.
+  </Step>
+  
+  <Step title="Verify Services">
+    Check that all services are healthy:
+    ```bash
+    docker compose ps
+    ```
+    
+    All services should show status "healthy".
+  </Step>
+</Steps>
+
+## Service Details
+
+### PostgreSQL
+
+**Image**: `postgres:15-alpine`  
+**Port**: 5432  
+**Database**: `labrinth`  
+**User**: `labrinth`  
+**Password**: `labrinth`
+
+#### Accessing PostgreSQL
+
+```bash
+# Via docker exec
+docker exec labrinth-postgres psql -U labrinth -d labrinth
+
+# Run a query
+docker exec labrinth-postgres psql -U labrinth -d labrinth -c "SELECT COUNT(*) FROM projects;"
+
+# Using local psql client
+psql postgresql://labrinth:labrinth@localhost:5432/labrinth
+```
+
+#### Database Structure
+
+Labrinth uses SQLx migrations located in `apps/labrinth/migrations/`.
+
+```bash
+# Run migrations (from apps/labrinth)
+cd apps/labrinth
+cargo sqlx migrate run
+
+# Create new migration
+cargo sqlx migrate add create_my_table
+```
+
+### Redis
+
+**Image**: `redis:alpine`  
+**Port**: 6379
+
+#### Accessing Redis
+
+```bash
+# Connect to Redis CLI
+docker exec -it labrinth-redis redis-cli
+
+# Example commands
+> KEYS *
+> GET session:abc123
+> HGETALL user:456
+```
+
+#### Usage in Labrinth
+
+- Session storage
+- Rate limiting counters
+- Temporary caches
+- Background job queues
+
+### ClickHouse
+
+**Image**: `clickhouse/clickhouse-server`  
+**Port**: 8123 (HTTP)  
+**Database**: `staging_ariadne`  
+**User**: `default`  
+**Password**: `default`
+
+#### Accessing ClickHouse
+
+```bash
+# Connect to ClickHouse client
+docker exec -it labrinth-clickhouse clickhouse-client
+
+# Use staging database
+USE staging_ariadne;
+
+# Query analytics
+SELECT COUNT(*) FROM downloads;
+```
+
+#### Creating Tables
+
+```sql
+CREATE TABLE IF NOT EXISTS staging_ariadne.downloads (
+    version_id String,
+    timestamp DateTime,
+    ip String,
+    user_agent String
+) ENGINE = MergeTree()
+ORDER BY timestamp;
+```
+
+### Meilisearch
+
+**Image**: `getmeili/meilisearch:v1.12.0`  
+**Port**: 7700  
+**Master Key**: `modrinth`
+
+#### Accessing Meilisearch
+
+**Web UI**: http://localhost:7700  
+**API Key**: `modrinth`
+
+```bash
+# Check health
+curl http://localhost:7700/health
+
+# List indexes
+curl http://localhost:7700/indexes \
+  -H "Authorization: Bearer modrinth"
+```
+
+#### Indexing Projects
+
+Labrinth automatically indexes projects to Meilisearch on creation/update.
+
+```bash
+# Manually trigger reindex (from Labrinth API)
+curl -X POST http://localhost:8000/_internal/search/reindex \
+  -H "Authorization: Bearer YOUR_ADMIN_KEY"
+```
+
+### Mailpit (Email Testing)
+
+**Image**: `axllent/mailpit:v1.27`  
+**SMTP Port**: 1025  
+**Web UI Port**: 8025
+
+#### Viewing Emails
+
+Open http://localhost:8025 to view all emails sent by Labrinth during development.
+
+**Use cases**:
+- Email verification
+- Password reset emails
+- Notification emails
+
+### Gotenberg (PDF Generation)
+
+**Image**: `gotenberg/gotenberg:8`  
+**Port**: 13000
+
+Used for generating PDF reports and invoices.
+
+```bash
+# Test PDF generation
+curl --request POST \
+  --url http://localhost:13000/forms/chromium/convert/url \
+  --form url=https://modrinth.com \
+  --output test.pdf
+```
+
+## Running Labrinth (Backend API)
+
+### Setup
+
+<Steps>
+  <Step title="Navigate to Labrinth">
+    ```bash
+    cd apps/labrinth
+    ```
+  </Step>
+  
+  <Step title="Copy Environment File">
+    ```bash
+    cp .env.docker-compose .env
+    ```
+    
+    This file contains pre-configured settings for local development.
+  </Step>
+  
+  <Step title="Run Migrations">
+    ```bash
+    cargo sqlx migrate run
+    ```
+    
+    This creates all necessary database tables.
+  </Step>
+  
+  <Step title="Start Labrinth">
+    ```bash
+    cargo run -p labrinth
+    ```
+    
+    Or for faster compilation (debug mode):
+    ```bash
+    cargo run
+    ```
+  </Step>
+</Steps>
+
+Labrinth will be available at http://localhost:8000
+
+### Verify API is Running
+
+```bash
+# Check health endpoint
+curl http://localhost:8000/health
+
+# Browse API docs
+open http://localhost:8000/docs
+```
+
+### Environment Variables
+
+Key variables in `.env.docker-compose`:
+
+```bash
+# Database
+DATABASE_URL=postgres://labrinth:labrinth@localhost/labrinth
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# ClickHouse
+ANALYTICS_URL=http://localhost:8123
+ANALYTICS_DATABASE=staging_ariadne
+
+# Meilisearch
+MEILISEARCH_ADDR=http://localhost:7700
+MEILISEARCH_KEY=modrinth
+
+# S3 (local development - optional)
+# S3_URL=http://localhost:9000  # If using MinIO
+# S3_BUCKET_NAME=modrinth
+
+# Email (Mailpit)
+SMTP_HOST=localhost
+SMTP_PORT=1025
+
+# Auth (for OAuth - use test credentials)
+GITHUB_CLIENT_ID=your_test_client_id
+GITHUB_CLIENT_SECRET=your_test_secret
+
+# Internal API key (for admin endpoints)
+ADMIN_KEY=feedbeef
+```
+
+## Running Frontend Applications
+
+### Web Interface
+
+```bash
+# From root directory
+cd apps/frontend
+cp .env.local .env
+
+# Edit .env if needed to point to local Labrinth
+# NUXT_PUBLIC_LABRINTH_URL=http://localhost:8000
+
+cd ../..
+pnpm web:dev
+```
+
+Access at http://localhost:3000
+
+### Desktop App
+
+```bash
+# From root directory
+cd packages/app-lib
+cp .env.local .env
+
+cd ../..
+pnpm app:dev
+```
+
+The Tauri app window will open automatically.
+
+## Database Management
+
+### Resetting the Database
+
+To start fresh:
+
+```bash
+# Stop services
+docker compose down -v
+
+# Remove all data
+rm -rf docker-volumes/  # If you have local volumes
+
+# Start services
+docker compose up -d
+
+# Run migrations
+cd apps/labrinth
+cargo sqlx migrate run
+```
+
+### Seeding Test Data
+
+Create test data for development:
+
+```sql
+-- Connect to PostgreSQL
+docker exec -it labrinth-postgres psql -U labrinth -d labrinth
+
+-- Create test user
+INSERT INTO users (id, username, email, created)
+VALUES ('local_1', 'testuser', 'test@example.com', NOW());
+
+-- Create test project
+INSERT INTO projects (id, slug, title, description, published)
+VALUES ('local_proj_1', 'test-mod', 'Test Mod', 'A test mod', NOW());
+```
+
+Or use the Labrinth API to create projects:
+
+```bash
+# Authenticate (requires GitHub OAuth setup)
+curl -X POST http://localhost:8000/v3/project \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "title": "Test Mod",
+    "slug": "test-mod",
+    "description": "A test mod",
+    "project_type": "mod",
+    "categories": ["technology"],
+    "license_id": "MIT"
+  }'
+```
+
+### Backup and Restore
+
+**Backup**:
+```bash
+docker exec labrinth-postgres pg_dump -U labrinth labrinth > backup.sql
+```
+
+**Restore**:
+```bash
+cat backup.sql | docker exec -i labrinth-postgres psql -U labrinth -d labrinth
+```
+
+## Optional Services
+
+### Delphi (Malware Scanner)
+
+Delphi scans uploaded files for malware. It's optional for local development.
+
+```bash
+# Start with Delphi profile
+docker compose --profile with-delphi up -d
+```
+
+**Port**: 59999
+
+### Sharded Meilisearch
+
+For testing search with multiple Meilisearch instances:
+
+```bash
+docker compose --profile sharded-meilisearch up -d
+```
+
+This starts:
+- `meilisearch0` on 7700
+- `meilisearch1` on 7701
+- Nginx load balancer on 7710
+
+### Running Labrinth in Docker
+
+To run Labrinth itself in Docker:
+
+```bash
+docker compose --profile with-labrinth up -d
+```
+
+This builds and runs Labrinth in a container instead of running it locally with `cargo run`.
+
+## Troubleshooting
+
+### Services Won't Start
+
+```bash
+# Check service logs
+docker compose logs postgres_db
+docker compose logs redis
+docker compose logs clickhouse
+
+# Check all logs
+docker compose logs -f
+```
+
+### Port Already in Use
+
+If a port is already in use, edit `docker-compose.yml` to change the port mapping:
+
+```yaml
+ports:
+  - '127.0.0.1:5433:5432'  # Use 5433 instead of 5432
+```
+
+Then update `DATABASE_URL` in `.env`:
+```
+DATABASE_URL=postgres://labrinth:labrinth@localhost:5433/labrinth
+```
+
+### Database Connection Errors
+
+```bash
+# Verify PostgreSQL is running and healthy
+docker compose ps postgres_db
+
+# Check connection
+psql postgresql://labrinth:labrinth@localhost:5432/labrinth -c "SELECT 1;"
+```
+
+### Meilisearch Index Issues
+
+If search isn't working:
+
+```bash
+# Check Meilisearch health
+curl http://localhost:7700/health
+
+# List indexes
+curl http://localhost:7700/indexes -H "Authorization: Bearer modrinth"
+
+# Trigger reindex from Labrinth
+curl -X POST http://localhost:8000/_internal/search/reindex \
+  -H "Authorization: Bearer feedbeef"
+```
+
+### Slow Compilation (Rust)
+
+Speed up Rust compilation:
+
+```bash
+# Install sccache (compilation cache)
+cargo install sccache
+
+# Add to ~/.cargo/config.toml
+[build]
+rustc-wrapper = "sccache"
+
+# Or use mold linker (Linux)
+sudo apt install mold
+export RUSTFLAGS="-C link-arg=-fuse-ld=mold"
+```
+
+### Out of Disk Space
+
+Docker can consume a lot of disk space:
+
+```bash
+# Clean up unused containers and images
+docker system prune -a
+
+# Remove volumes
+docker volume prune
+```
+
+## Development Workflow
+
+### Typical Development Session
+
+```bash
+# 1. Start services
+docker compose up -d
+
+# 2. Start Labrinth (in one terminal)
+cd apps/labrinth
+cargo run
+
+# 3. Start frontend (in another terminal)
+pnpm web:dev
+
+# 4. Make changes and test
+
+# 5. When done, stop services
+docker compose down
+```
+
+### Hot Reloading
+
+- **Frontend**: Vite provides instant HMR
+- **Backend**: Rust requires manual restart after code changes
+
+**Tip**: Use `cargo-watch` for auto-restart:
+
+```bash
+cargo install cargo-watch
+
+# Auto-restart on file changes
+cargo watch -x 'run -p labrinth'
+```
+
+### Viewing Logs
+
+```bash
+# Docker service logs
+docker compose logs -f postgres_db
+docker compose logs -f meilisearch0
+
+# Labrinth logs (if running with cargo)
+# Already visible in terminal
+
+# Frontend logs
+# Already visible in terminal running pnpm web:dev
+```
+
+## Performance Tips
+
+### PostgreSQL Tuning
+
+For local development, you can increase performance by adjusting PostgreSQL settings:
+
+```bash
+# Edit docker-compose.yml to add environment variables:
+environment:
+  - POSTGRES_SHARED_BUFFERS=256MB
+  - POSTGRES_WORK_MEM=16MB
+  - POSTGRES_MAINTENANCE_WORK_MEM=64MB
+```
+
+### Redis Memory Limit
+
+```yaml
+redis:
+  command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+```
+
+### ClickHouse Memory
+
+```yaml
+clickhouse:
+  environment:
+    - CLICKHOUSE_MAX_MEMORY_USAGE=4000000000  # 4GB
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend (Labrinth)" icon="server" href="/development/backend-labrinth">
+    Learn about the Rust backend architecture
+  </Card>
+  
+  <Card title="Frontend (Web)" icon="window" href="/development/frontend-web">
+    Develop the Nuxt 3 web interface
+  </Card>
+  
+  <Card title="Testing" icon="flask" href="/development/testing">
+    Run tests and ensure quality
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/development/deployment">
+    Learn about the production deployment
+  </Card>
+</CardGroup>

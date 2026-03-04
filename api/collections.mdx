@@ -1,0 +1,369 @@
+---
+title: "Collections API"
+description: "API endpoints for managing user collections of projects"
+---
+
+## Get Collection
+
+Retrieve a single collection by its ID.
+
+```http
+GET /v3/collection/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The collection ID (base62 encoded)
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="string">
+  The collection's unique ID
+</ResponseField>
+
+<ResponseField name="user" type="string">
+  ID of the user who created the collection
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The collection's name
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  The collection's description
+</ResponseField>
+
+<ResponseField name="created" type="string">
+  ISO 8601 timestamp of creation
+</ResponseField>
+
+<ResponseField name="updated" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<ResponseField name="icon_url" type="string">
+  URL to the collection icon
+</ResponseField>
+
+<ResponseField name="color" type="integer">
+  Primary color extracted from icon
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Collection status: `listed`, `unlisted`, `rejected`, or `private`
+</ResponseField>
+
+<ResponseField name="projects" type="array">
+  Array of project IDs in this collection
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/collection/AANobbMI
+```
+
+### Example Response
+
+```json
+{
+  "id": "AANobbMI",
+  "user": "9dU94F4T",
+  "name": "Performance Mods",
+  "description": "Best performance optimization mods for Minecraft",
+  "created": "2023-01-15T10:00:00Z",
+  "updated": "2024-01-15T10:30:00Z",
+  "icon_url": "https://cdn.modrinth.com/data/collections/AANobbMI/icon.png",
+  "color": 4287168,
+  "status": "listed",
+  "projects": [
+    "AANobbMI",
+    "gvQqBUqZ",
+    "H8CaAYZC"
+  ]
+}
+```
+
+---
+
+## Get Multiple Collections
+
+Retrieve multiple collections by their IDs.
+
+```http
+GET /v3/collections?ids=["id1","id2"]
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of collection IDs as a string
+</ParamField>
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/collections?ids=["AANobbMI","BBxxyyzz"]'
+```
+
+---
+
+## Create Collection
+
+Create a new collection. Requires authentication and `COLLECTION_CREATE` scope.
+
+```http
+POST /v3/collection
+```
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Collection name (3-64 characters)
+</ParamField>
+
+<ParamField body="description" type="string">
+  Collection description (3-255 characters)
+</ParamField>
+
+<ParamField body="projects" type="array">
+  Initial list of project IDs or slugs (max 1024)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/collection \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Favorite Mods",
+    "description": "A curated list of essential mods",
+    "projects": ["sodium", "lithium", "phosphor"]
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "id": "NewCollID",
+  "user": "YourUserID",
+  "name": "My Favorite Mods",
+  "description": "A curated list of essential mods",
+  "created": "2024-01-15T10:30:00Z",
+  "updated": "2024-01-15T10:30:00Z",
+  "icon_url": null,
+  "color": null,
+  "status": "listed",
+  "projects": [
+    "AANobbMI",
+    "gvQqBUqZ",
+    "H8CaAYZC"
+  ]
+}
+```
+
+---
+
+## Update Collection
+
+Update a collection's metadata. Requires authentication and `COLLECTION_WRITE` scope.
+
+```http
+PATCH /v3/collection/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The collection ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="name" type="string">
+  New collection name (3-64 characters)
+</ParamField>
+
+<ParamField body="description" type="string">
+  New collection description (3-256 characters, or null to clear)
+</ParamField>
+
+<ParamField body="status" type="string">
+  New status (moderators can set any status; users can only set `listed` or `unlisted`)
+</ParamField>
+
+<ParamField body="new_projects" type="array">
+  Complete new list of project IDs/slugs to replace existing projects (max 1024)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/collection/AANobbMI \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Collection Name",
+    "description": "Updated description",
+    "new_projects": ["sodium", "lithium", "phosphor", "ferritecore"]
+  }'
+```
+
+---
+
+## Delete Collection
+
+Delete a collection. Requires authentication and `COLLECTION_DELETE` scope.
+
+```http
+DELETE /v3/collection/{id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The collection ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/collection/AANobbMI \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Update Collection Icon
+
+Upload a new icon for a collection. Requires authentication and `COLLECTION_WRITE` scope.
+
+```http
+PATCH /v3/collection/{id}/icon?ext=png
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The collection ID
+</ParamField>
+
+### Query Parameters
+
+<ParamField query="ext" type="string" required>
+  Image file extension (png, jpg, etc.)
+</ParamField>
+
+### Request Body
+
+Raw image data (must be smaller than 256 KiB).
+
+### Example Request
+
+```bash
+curl -X PATCH 'https://api.modrinth.com/v3/collection/AANobbMI/icon?ext=png' \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: image/png" \
+  --data-binary '@collection-icon.png'
+```
+
+---
+
+## Delete Collection Icon
+
+Delete a collection's icon. Requires authentication and `COLLECTION_WRITE` scope.
+
+```http
+DELETE /v3/collection/{id}/icon
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The collection ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/collection/AANobbMI/icon \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get User's Collections
+
+Get all collections created by a specific user.
+
+```http
+GET /v3/user/{user_id}/collections
+```
+
+### Path Parameters
+
+<ParamField path="user_id" type="string" required>
+  User ID or username
+</ParamField>
+
+### Response
+
+Returns an array of collections visible to the requester.
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/user/jellysquid/collections
+```
+
+---
+
+## Common Use Cases
+
+**Creating a Curated Modpack List**
+1. Create a collection with `POST /v3/collection`
+2. Add an icon with `PATCH /v3/collection/{id}/icon`
+3. Update the project list as needed with `PATCH /v3/collection/{id}`
+4. Share the collection URL with others
+
+**Managing Collection Visibility**
+
+Collections support four status levels:
+- `listed` - Public and discoverable
+- `unlisted` - Public but not in search results
+- `private` - Only visible to the creator
+- `rejected` - Rejected by moderators (moderator action only)
+
+**Collection Limits**
+
+Users have limits on how many collections they can create. The limit depends on their account type and is enforced when creating new collections.
+
+**Project Management**
+
+When updating the project list:
+- Use `new_projects` to completely replace the existing list
+- Projects are referenced by ID or slug
+- Non-existent projects will cause an error
+- Maximum 1024 projects per collection
+- The collection's `updated` timestamp is automatically set
+
+**Best Practices**
+
+1. **Descriptive Names**: Use clear, descriptive names that explain the collection's purpose
+2. **Good Descriptions**: Write helpful descriptions that explain what users will find
+3. **Quality Over Quantity**: Curate carefully rather than adding every related project
+4. **Keep Updated**: Remove deprecated projects and add new relevant ones
+5. **Use Icons**: Add custom icons to make collections visually distinctive
+6. **Appropriate Status**: Use `listed` for public collections, `unlisted` for works-in-progress
+
+**Permissions**
+
+- Only the collection creator can edit or delete their collections
+- Moderators can edit any collection's status
+- Anyone can view `listed` collections
+- Only the creator can view `private` collections
+- Anyone with the link can view `unlisted` collections

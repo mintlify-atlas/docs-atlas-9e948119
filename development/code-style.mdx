@@ -1,0 +1,510 @@
+---
+title: Code Style Guide
+description: Coding standards and conventions for the Modrinth monorepo
+---
+
+## General Principles
+
+Code in the Modrinth monorepo should be:
+
+- **Self-documenting**: Clear variable and function names that explain their purpose
+- **Consistent**: Follow established patterns in the codebase
+- **Maintainable**: Easy for others to understand and modify
+- **Tested**: Include appropriate test coverage for new features
+
+## Indentation
+
+<Note>
+**Use TAB everywhere, never spaces** - This is enforced across the entire monorepo.
+</Note>
+
+The `.editorconfig` file defines:
+
+```ini
+[*]
+charset = utf-8
+indent_style = tab
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+```
+
+### Exceptions
+
+Only these file types use spaces:
+
+- **YAML files** (`.yml`, `.yaml`): 2 spaces (required by YAML spec)
+- **TOML/JSON** (`.toml`, `.json`): 2 spaces
+- **Markdown** (`.md`): 2 spaces for lists
+- **Rust** (`.rs`): Spaces (Rust community standard)
+
+## Rust Formatting
+
+### rustfmt Configuration
+
+Rust code uses rustfmt with these settings (`rustfmt.toml`):
+
+```toml
+edition = "2024"
+max_width = 80
+```
+
+### Running rustfmt
+
+```bash
+# Format all Rust code
+cargo fmt
+
+# Check formatting without making changes
+cargo fmt -- --check
+```
+
+### Clippy Linting
+
+**Zero warnings required** - CI will fail if there are any clippy warnings.
+
+```bash
+# Run clippy on Labrinth
+cargo clippy -p labrinth --all-targets
+
+# Run clippy on app (Theseus)
+cargo clippy -p theseus --all-targets
+```
+
+Custom clippy rules are defined in `Cargo.toml`:
+
+```toml
+[workspace.lints.clippy]
+bool_to_int_with_if = "warn"
+dbg_macro = "warn"
+todo = "warn"
+too_many_arguments = "allow"
+uninlined_format_args = "warn"
+# ... and more
+```
+
+### Rust Code Guidelines
+
+<CodeGroup>
+```rust Good Example
+// Clear, self-documenting function name
+fn calculate_version_hash(version_id: &str) -> String {
+    // Implementation
+}
+
+// Good use of doc comments
+/// Fetches a project from the database by its ID or slug.
+///
+/// # Arguments
+/// * `id_or_slug` - The project ID or slug to search for
+///
+/// # Returns
+/// Returns the project if found, or None
+pub async fn get_project(id_or_slug: &str) -> Option<Project> {
+    // Implementation
+}
+```
+
+```rust Bad Example
+// Avoid heading comments
+// =====================
+// Helper Functions
+// =====================
+
+// Avoid cryptic names
+fn calc_vh(v: &str) -> String {
+    // Implementation
+}
+
+// Don't use dbg! in production code
+let result = dbg!(some_value);
+
+// Avoid todo! without tracking
+fn new_feature() {
+    todo!("implement this")
+}
+```
+</CodeGroup>
+
+## JavaScript/TypeScript Formatting
+
+### ESLint & Prettier
+
+All frontend code uses ESLint and Prettier, configured in `packages/tooling-config`:
+
+```bash
+# Run linter
+pnpm lint
+
+# Auto-fix issues
+pnpm fix
+```
+
+### TypeScript Guidelines
+
+```typescript
+// Use explicit types for function parameters and return values
+function getUserById(id: string): Promise<User | null> {
+	return client.labrinth.users_v2.get(id)
+}
+
+// Use const for values that don't change
+const MAX_UPLOAD_SIZE = 5242880 // 5MB
+
+// Prefer arrow functions for callbacks
+const items = users.map((user) => user.name)
+
+// Use template literals
+const message = `User ${username} logged in at ${timestamp}`
+```
+
+### Vue Component Guidelines
+
+```vue
+<script setup lang="ts">
+// Script setup at the top
+import { ref } from 'vue'
+import type { Project } from '@modrinth/api-client'
+
+const project = ref<Project | null>(null)
+</script>
+
+<template>
+	<!-- Use semantic HTML -->
+	<div class="project-card">
+		<h2 class="text-contrast">{{ project?.title }}</h2>
+		<p class="text-secondary">{{ project?.description }}</p>
+	</div>
+</template>
+
+<style scoped>
+/* Use Tailwind classes when possible */
+/* Scoped styles for component-specific needs */
+.project-card {
+	/* Custom styles */
+}
+</style>
+```
+
+## Naming Conventions
+
+### Rust
+
+```rust
+// Types: PascalCase
+struct ProjectVersion {}
+enum LoaderType {}
+
+// Functions and variables: snake_case
+fn get_user_projects() {}
+let user_count = 0;
+
+// Constants: SCREAMING_SNAKE_CASE
+const MAX_FILE_SIZE: usize = 5_242_880;
+
+// Modules: snake_case
+mod database_utils;
+```
+
+### TypeScript/JavaScript
+
+```typescript
+// Types and Interfaces: PascalCase
+interface UserProfile {}
+type ProjectType = 'mod' | 'modpack' | 'resourcepack'
+
+// Functions and variables: camelCase
+function getUserProfile() {}
+const projectCount = 0
+
+// Constants: SCREAMING_SNAKE_CASE
+const API_BASE_URL = 'https://api.modrinth.com'
+
+// Components: PascalCase
+export default defineComponent({
+	name: 'ProjectCard',
+})
+
+// Composables: camelCase with 'use' prefix
+function useModrinthClient() {}
+```
+
+### Files and Directories
+
+```
+// Vue components: PascalCase.vue
+ProjectCard.vue
+UserProfile.vue
+
+// TypeScript modules: kebab-case.ts
+api-client.ts
+auth-utils.ts
+
+// Rust files: snake_case.rs
+project_routes.rs
+auth_checks.rs
+
+// Directories: kebab-case or snake_case
+packages/api-client/
+apps/labrinth/src/routes/
+```
+
+## Documentation Standards
+
+### Code Comments
+
+<Warning>
+**DO NOT use "heading" comments** like `// === Helper methods ===`
+
+Use doc comments for public APIs, but avoid inline comments unless absolutely necessary for clarity. Code should aim to be self-documenting!
+</Warning>
+
+<CodeGroup>
+```rust Rust Doc Comments
+/// Fetches all versions for a given project.
+///
+/// # Arguments
+/// * `project_id` - The ID of the project
+/// * `loaders` - Optional filter for mod loaders
+///
+/// # Returns
+/// A vector of version objects
+///
+/// # Errors
+/// Returns an error if the database query fails
+pub async fn get_project_versions(
+    project_id: &str,
+    loaders: Option<Vec<String>>,
+) -> Result<Vec<Version>, DatabaseError> {
+    // Implementation
+}
+```
+
+```typescript TypeScript JSDoc Comments
+/**
+ * Fetches a project by ID or slug.
+ *
+ * @param idOrSlug - The project ID or slug
+ * @returns The project data, or null if not found
+ * @throws {ApiError} If the API request fails
+ */
+export async function getProject(
+	idOrSlug: string,
+): Promise<Project | null> {
+	// Implementation
+}
+```
+</CodeGroup>
+
+### README Files
+
+Each major package should have a README.md with:
+
+- Brief description of the package
+- Installation instructions (if applicable)
+- Basic usage examples
+- Link to main documentation
+
+### CLAUDE.md Files
+
+Project-specific AI instructions are in CLAUDE.md files:
+
+- Architecture overview
+- Key directories
+- Development commands
+- Testing instructions
+- Pre-PR requirements
+
+## Commit Message Format
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Commit Types
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, no logic change)
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks, dependency updates
+- `ci`: CI/CD changes
+
+### Examples
+
+<CodeGroup>
+```bash Good Commits
+feat: add version filtering to project search
+
+fix: resolve authentication token expiration issue
+
+docs: update API client usage examples
+
+refactor: simplify project query logic
+
+perf: optimize database query for project list
+
+test: add unit tests for version validation
+```
+
+```bash Bad Commits
+update files
+
+fixed bug
+
+WIP
+
+stuff
+
+feat add new feature (missing colon)
+```
+</CodeGroup>
+
+### Commit Body Guidelines
+
+- Focus on **why** rather than **what**
+- Keep the first line under 72 characters
+- Use the body to explain context and reasoning
+- Reference issue numbers when applicable
+
+```
+feat: add multi-loader support to version creation
+
+Allows users to specify multiple mod loaders (Forge, Fabric, Quilt)
+for a single version, reducing duplicate uploads.
+
+Closes #1234
+```
+
+## Pre-PR Requirements
+
+### Frontend (Web/App)
+
+Run these commands before opening a PR:
+
+```bash
+# All frontend checks (includes formatting, linting, type checking)
+pnpm prepr
+
+# Or run specific checks:
+pnpm prepr:frontend:web   # Website only
+pnpm prepr:frontend:app   # App only
+pnpm prepr:frontend:lib   # Shared libraries only
+```
+
+### Backend (Labrinth)
+
+```bash
+cd apps/labrinth
+
+# Run clippy (must have ZERO warnings)
+cargo clippy -p labrinth --all-targets
+
+# Prepare SQLx offline query cache
+cargo sqlx prepare
+
+# Format code
+cargo fmt
+```
+
+<Warning>
+**NEVER run** `cargo sqlx prepare --workspace` - only run it from `apps/labrinth/`
+</Warning>
+
+### All Changes
+
+```bash
+# Ensure no build errors
+pnpm build
+
+# Run tests (if applicable)
+pnpm test
+cargo test -p labrinth --all-targets  # For Labrinth changes
+```
+
+## File-Specific Guidelines
+
+### No New Scripts
+
+Do not create new non-source code files (e.g., Bash scripts, SQL scripts) unless explicitly needed and approved.
+
+### Output Handling
+
+When running commands:
+
+- **DO NOT** pipe output through `head`, `tail`, `less`, or `more`
+- Run commands directly without truncation
+- Use command-specific flags for limiting output (e.g., `git log -n 10` instead of `git log | head -10`)
+
+## Tailwind CSS Guidelines
+
+Use semantic color variables from `@modrinth/assets`:
+
+```vue
+<template>
+	<!-- Good: Use surface variables -->
+	<div class="bg-surface-4 text-primary">
+		<h1 class="text-contrast">Title</h1>
+		<p class="text-secondary">Description</p>
+	</div>
+
+	<!-- Bad: Direct color values -->
+	<div class="bg-gray-800 text-white">
+		<!-- Avoid -->
+	</div>
+</template>
+```
+
+See the [Frontend Web](/development/frontend-web) guide for complete color usage rules.
+
+## Tool Configuration Files
+
+- `.editorconfig` - Editor settings (tabs, line endings)
+- `rustfmt.toml` - Rust formatting
+- `clippy.toml` - Clippy linting rules
+- `.prettierignore` - Files to exclude from Prettier
+- `_typos.toml` - Spell checking configuration
+
+## Summary Checklist
+
+<Steps>
+  <Step title="Formatting">
+    - [ ] Use tabs for indentation (except YAML, Rust)
+    - [ ] Run `cargo fmt` for Rust
+    - [ ] Run `pnpm fix` for JS/TS
+  </Step>
+  
+  <Step title="Linting">
+    - [ ] Zero clippy warnings for Rust
+    - [ ] Zero ESLint errors for JS/TS
+    - [ ] All imports organized
+  </Step>
+  
+  <Step title="Documentation">
+    - [ ] Doc comments for public APIs
+    - [ ] No heading comments
+    - [ ] Updated README if needed
+  </Step>
+  
+  <Step title="Commits">
+    - [ ] Follow conventional commit format
+    - [ ] Clear, descriptive messages
+    - [ ] Reference issues when applicable
+  </Step>
+  
+  <Step title="Pre-PR">
+    - [ ] Run `pnpm prepr` for frontend
+    - [ ] Run clippy and sqlx prepare for backend
+    - [ ] All tests pass
+  </Step>
+</Steps>

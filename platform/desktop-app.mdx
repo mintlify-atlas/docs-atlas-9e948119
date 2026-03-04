@@ -1,0 +1,402 @@
+---
+title: Desktop App
+description: The Modrinth desktop app - a powerful Minecraft launcher with integrated mod browsing, instance management, and automatic updates
+---
+
+The Modrinth desktop app is a modern, open-source Minecraft launcher built for the community. It provides seamless integration with Modrinth's platform for discovering, installing, and managing mods and modpacks.
+
+## Installation
+
+<Tabs>
+  <Tab title="Windows">
+    **System Requirements**
+    - Windows 10 or later (64-bit)
+    - 4GB RAM minimum (8GB recommended)
+    - 2GB free disk space
+
+    **Installation Steps**
+    1. Download the installer from [modrinth.com/app](https://modrinth.com/app)
+    2. Run the `.exe` installer
+    3. Follow the installation wizard
+    4. Launch the app from the Start menu
+
+    <Note>
+    The app will automatically detect your existing Minecraft installation and Java runtime.
+    </Note>
+  </Tab>
+  
+  <Tab title="macOS">
+    **System Requirements**
+    - macOS 10.15 (Catalina) or later
+    - 4GB RAM minimum (8GB recommended)
+    - 2GB free disk space
+    - Apple Silicon and Intel supported
+
+    **Installation Steps**
+    1. Download the `.dmg` file from [modrinth.com/app](https://modrinth.com/app)
+    2. Open the downloaded file
+    3. Drag the app to your Applications folder
+    4. Launch from Applications
+
+    <Tip>
+    On first launch, you may need to right-click and select "Open" to bypass Gatekeeper if the app is not notarized.
+    </Tip>
+  </Tab>
+  
+  <Tab title="Linux">
+    **System Requirements**
+    - Modern Linux distribution (Ubuntu 20.04+, Fedora 35+, or equivalent)
+    - 4GB RAM minimum (8GB recommended)
+    - 2GB free disk space
+
+    **Installation Steps**
+
+    **AppImage** (Universal)
+    1. Download the `.AppImage` from [modrinth.com/app](https://modrinth.com/app)
+    2. Make it executable: `chmod +x Modrinth-App.AppImage`
+    3. Run: `./Modrinth-App.AppImage`
+
+    **Debian/Ubuntu (.deb)**
+    ```bash
+    sudo dpkg -i modrinth-app.deb
+    sudo apt-get install -f
+    ```
+
+    **Fedora (.rpm)**
+    ```bash
+    sudo dnf install modrinth-app.rpm
+    ```
+
+    <Note>
+    The app requires OpenGL 3.3+ support for rendering.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Instance Management
+
+Instances (also called profiles) are independent Minecraft installations with their own mods, settings, and game versions.
+
+### Creating Instances
+
+<CardGroup cols={2}>
+  <Card title="From Scratch" icon="plus">
+    1. Click "Create Instance"
+    2. Select Minecraft version
+    3. Choose mod loader (Fabric, Forge, Quilt, NeoForge)
+    4. Set instance name and icon
+    5. Configure initial settings
+    6. Click "Create"
+  </Card>
+  
+  <Card title="From Modpack" icon="box">
+    1. Browse modpacks in the app
+    2. Click "Install" on a modpack
+    3. Select game version (if multiple available)
+    4. Choose installation location
+    5. App automatically downloads and configures everything
+  </Card>
+</CardGroup>
+
+### Instance Features
+
+Each instance provides:
+
+**Profile Management** (`profile.rs`)
+- Independent mod folders
+- Separate resource packs and shader packs
+- Custom Java arguments and memory allocation
+- Per-instance save files and screenshots
+- Instance icons and metadata
+
+**Quick Actions**
+- Launch game
+- Edit instance settings
+- Open instance folder
+- View crash reports
+- Export as modpack
+- Delete instance
+
+### Instance Settings
+
+Configure each instance individually:
+
+<Tabs>
+  <Tab title="General">
+    - Instance name and description
+    - Custom icon upload
+    - Minecraft version
+    - Mod loader version
+    - Game directory path
+  </Tab>
+  
+  <Tab title="Java">
+    - Java runtime selection (auto-detected)
+    - Memory allocation (min/max RAM)
+    - JVM arguments
+    - Java version override
+    - Performance optimizations
+  </Tab>
+  
+  <Tab title="Game">
+    - Resolution settings
+    - Fullscreen mode
+    - Quick Play integration
+    - Server address for quick connect
+    - Custom game arguments
+  </Tab>
+</Tabs>
+
+<Tip>
+The app automatically selects the optimal Java version based on your Minecraft version. Java 8 for 1.16 and below, Java 17 for 1.17-1.20.4, and Java 21 for 1.20.5+.
+</Tip>
+
+## Browsing and Installing Mods
+
+### Integrated Browse Tab
+
+The app includes a full-featured project browser:
+
+**Search Capabilities**
+- Real-time search with instant results
+- Filter by project type (mods, plugins, resource packs, shaders, modpacks)
+- Compatibility filtering based on instance version and loader
+- Category and tag filters
+- Sort by relevance, downloads, follows, or updated date
+
+**Installation Flow**
+1. Select an instance from the dropdown
+2. Browse or search for projects
+3. Click on a project to view details
+4. Select a compatible version
+5. Click "Install" - dependencies are automatically resolved
+
+### Automatic Dependency Resolution
+
+<Note>
+When you install a mod, the app automatically detects and installs all required dependencies. You'll see a confirmation dialog listing all mods that will be installed.
+</Note>
+
+**Dependency Features**
+- Automatic detection of required mods
+- Optional dependency suggestions
+- Conflict detection and warnings
+- Version compatibility checking
+- Dependency tree visualization
+
+### Managing Installed Mods
+
+For each instance, you can:
+
+**Mod Actions** (`profile.rs` functions)
+- Enable/disable mods without deletion
+- Update to latest compatible version
+- Update all mods at once
+- Remove individual mods
+- View mod details and changelog
+- Check for updates
+
+**Bulk Operations**
+- Update all outdated mods
+- Disable all mods
+- Export mod list
+- Import from file
+
+## Minecraft Version Management
+
+### Version Selection
+
+The app supports all Minecraft versions:
+- **Release versions** - Stable Minecraft releases
+- **Snapshots** - Experimental preview builds
+- **Historical versions** - Classic and old releases
+- **Modded versions** - Pre-configured with mod loaders
+
+### Mod Loader Support
+
+<CardGroup cols={2}>
+  <Card title="Supported Loaders" icon="plug">
+    - Fabric
+    - Forge
+    - Quilt
+    - NeoForge
+    - Bukkit/Spigot/Paper (servers)
+    </Card>
+  
+  <Card title="Automatic Detection" icon="wand-magic-sparkles">
+    - Auto-install compatible loader versions
+    - Dependency compatibility checking
+    - Loader-specific optimizations
+    - Multi-loader support detection
+  </Card>
+</CardGroup>
+
+### Version Updates
+
+Keep your game and mods up to date:
+- Automatic update notifications
+- One-click update all mods
+- Changelog viewing before updating
+- Rollback to previous versions
+- Update profiles for modpacks
+
+## Profiles and Settings
+
+### Application Settings
+
+Customize the app's behavior:
+
+<Tabs>
+  <Tab title="General">
+    - Default instance directory
+    - Concurrent download limit
+    - Theme selection (light/dark/system)
+    - Language preferences
+    - Update channel (stable/beta)
+  </Tab>
+  
+  <Tab title="Accounts">
+    - Microsoft account authentication
+    - Multiple account support
+    - Account switching
+    - Offline mode
+    - Skin preview
+  </Tab>
+  
+  <Tab title="Java">
+    - Auto-detect Java installations
+    - Add custom Java paths
+    - Default memory allocation
+    - Global JVM arguments
+    - Java version management
+  </Tab>
+  
+  <Tab title="Advanced">
+    - Enable experimental features
+    - Developer mode
+    - Cache management
+    - Log file access
+    - Debug options
+  </Tab>
+</Tabs>
+
+### Account Management
+
+Manage your Minecraft accounts:
+- Sign in with Microsoft account
+- Add multiple accounts
+- Switch between accounts per instance
+- View account status and authentication
+- Offline mode for offline play
+
+## Advanced Features
+
+### Modpack Export
+
+Create your own modpacks from instances:
+
+**Export Options** (`profile_export_mrpack`)
+1. Select files to include
+2. Add modpack metadata
+3. Configure version information
+4. Export as `.mrpack` file
+5. Share or upload to Modrinth
+
+**Export Includes**
+- All installed mods
+- Configuration files
+- Resource packs and shader packs
+- Custom scripts
+- Server information
+
+### Process Management
+
+**Game Launching** (`profile_run`, `profile_kill`)
+- Launch multiple instances simultaneously
+- Monitor game process status
+- View live console output
+- Automatic crash detection
+- Kill stuck processes
+
+**Instance Indicators**
+- Running status display
+- Play time tracking
+- Memory usage monitoring
+- Quick stop button
+
+### Import and Migration
+
+<CardGroup cols={2}>
+  <Card title="Import From" icon="file-import">
+    - Other Modrinth installations
+    - CurseForge modpacks (.zip)
+    - MultiMC/Prism instances
+    - ATLauncher instances
+    - Custom .mrpack files
+  </Card>
+  
+  <Card title="Migration" icon="arrow-right-arrow-left">
+    - Automatic profile migration
+    - Settings preservation
+    - Mod compatibility checking
+    - Instance backup before migration
+  </Card>
+</CardGroup>
+
+### Performance Optimization
+
+The app includes built-in optimizations:
+- Efficient mod downloading with parallel requests
+- Intelligent caching of project metadata
+- Background update checks
+- Optimized file system operations
+- Low memory footprint
+
+## Troubleshooting
+
+### Common Issues
+
+**Game Won't Launch**
+- Verify Java installation
+- Check memory allocation settings
+- Review crash logs in instance folder
+- Disable conflicting mods
+- Repair instance installation
+
+**Mods Not Working**
+- Ensure mod compatibility with game version
+- Check for missing dependencies
+- Verify correct mod loader is installed
+- Look for mod conflicts in logs
+
+**Update Problems**
+- Clear app cache
+- Check internet connection
+- Verify download permissions
+- Try manual mod download
+
+### Logs and Debugging
+
+Access logs for troubleshooting:
+- **Game logs** - In instance folder under `logs/`
+- **App logs** - Available in settings → Advanced
+- **Crash reports** - Automatically detected and displayed
+- **Debug mode** - Enable for verbose logging
+
+<Tip>
+When reporting issues, include your app version, operating system, and relevant log files. Access logs from Settings → Advanced → Open Logs Folder.
+</Tip>
+
+## Open Source
+
+The Modrinth app is fully open source:
+- **Repository**: [github.com/modrinth/code](https://github.com/modrinth/code)
+- **License**: Multiple licenses per package
+- **Contributions**: Welcome via pull requests
+- **Issue tracking**: GitHub Issues
+
+Built with:
+- Tauri (Rust backend)
+- Vue 3 (Frontend)
+- TypeScript
+- Theseus (Minecraft management library)

@@ -1,0 +1,511 @@
+---
+title: "Managing Servers"
+description: "Control, monitor, and maintain your Modrinth server"
+icon: "server"
+---
+
+## Server Power Management
+
+### Starting, Stopping, and Restarting
+
+Control your server's power state from the management panel:
+
+<AccordionGroup>
+  <Accordion title="Start your server" icon="play">
+    Click the green **Start** button to power on your server. The server will:
+    1. Load the world and server configuration
+    2. Initialize mods and plugins
+    3. Open the server to player connections
+    
+    <Note>
+      Startup time varies based on world size and installed mods (typically 30-90 seconds).
+    </Note>
+  </Accordion>
+  
+  <Accordion title="Stop your server" icon="stop">
+    Click the red **Stop** button to gracefully shut down. This will:
+    1. Save all player data and world state
+    2. Disconnect all players with a shutdown message
+    3. Safely close all file handles
+    
+    <Warning>
+      Always use the Stop button rather than Kill to prevent world corruption.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Restart your server" icon="rotate">
+    Click the **Restart** button to perform a clean restart. This is equivalent to:
+    1. Stopping the server gracefully
+    2. Waiting for complete shutdown
+    3. Starting the server again
+    
+    Use restart when you:
+    - Install or update mods
+    - Change server properties
+    - Update server configuration
+  </Accordion>
+  
+  <Accordion title="Force kill (emergency only)" icon="skull">
+    The **Kill** button immediately terminates the server process.
+    
+    <Warning>
+      **Only use Kill if:**
+      - Server is frozen and not responding
+      - Normal stop commands fail
+      - You need to force a shutdown
+      
+      Force killing may result in data loss or world corruption.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+### Server Status Indicators
+
+Your server can be in one of these states:
+
+| Status | Indicator | Description |
+|--------|-----------|-------------|
+| **Running** | 🟢 Green | Server is online and accepting connections |
+| **Starting** | 🟡 Yellow | Server is booting up |
+| **Stopping** | 🟡 Yellow | Server is shutting down |
+| **Stopped** | ⚫ Gray | Server is offline |
+| **Crashed** | 🔴 Red | Server stopped unexpectedly |
+
+<Note>
+  If your server crashes, Modrinth automatically analyzes the logs to identify the cause and suggest solutions.
+</Note>
+
+## Real-Time Console Access
+
+### Using the Console
+
+The console provides direct access to your server's command-line interface:
+
+```bash
+# View server logs in real-time
+[Server thread/INFO]: Player123 joined the game
+[Server thread/INFO]: Done (4.321s)! For help, type "help"
+```
+
+### Sending Commands
+
+Type commands in the input field at the bottom of the console:
+
+```bash
+# Common server commands
+/list                           # View online players
+/op PlayerName                  # Make player an operator
+/gamemode creative PlayerName   # Change gamemode
+/whitelist add PlayerName       # Add to whitelist
+/ban PlayerName                 # Ban a player
+/say Hello everyone!            # Broadcast message
+```
+
+<Tip>
+  The console supports **tab completion** for commands. Start typing and press Tab to see suggestions.
+</Tip>
+
+### Command Autocomplete
+
+Modrinth's console includes intelligent command suggestions:
+
+1. Start typing a command (e.g., `/game`)
+2. See available completions appear below
+3. Use **Tab** to accept the suggestion
+4. Use **Arrow keys** to navigate between suggestions
+
+## Server File Management
+
+### Web-Based File Manager
+
+Access your server files directly from the browser:
+
+<Steps>
+  <Step title="Navigate to Files tab">
+    Click **Files** in your server management panel.
+  </Step>
+  
+  <Step title="Browse directories">
+    Navigate through folders like:
+    - `/world` - Your Minecraft world data
+    - `/mods` - Installed mod files
+    - `/plugins` - Installed plugin files
+    - `/config` - Configuration files
+    - `/logs` - Server logs
+  </Step>
+  
+  <Step title="Perform actions">
+    - **Click** a file to view or edit
+    - **Right-click** for more options
+    - **Drag and drop** to upload files
+  </Step>
+</Steps>
+
+### File Operations
+
+<CardGroup cols={2}>
+  <Card title="Upload files" icon="upload">
+    Drag files from your computer directly into the file manager, or click the upload button.
+  </Card>
+  
+  <Card title="Edit files" icon="pen">
+    Click any text file to edit it in the built-in editor with syntax highlighting.
+  </Card>
+  
+  <Card title="Download files" icon="download">
+    Right-click any file and select **Download** to save it to your computer.
+  </Card>
+  
+  <Card title="Delete files" icon="trash">
+    Select files and click the delete button. Confirm the deletion to remove them.
+  </Card>
+</CardGroup>
+
+### Archive Extraction
+
+Upload `.zip`, `.tar`, or `.tar.gz` files and Modrinth will automatically offer to extract them:
+
+1. Upload your archive file
+2. Click **Extract** when prompted
+3. Choose the destination folder
+4. Wait for extraction to complete
+
+<Note>
+  The extraction progress is shown in real-time with file counts and status updates.
+</Note>
+
+### SFTP Access
+
+For advanced users, connect via SFTP client:
+
+```bash
+Host: sftp.modrinth.gg
+Port: 2022
+Username: [shown in Options > Info]
+Password: [shown in Options > Info]
+```
+
+<Warning>
+  Keep your SFTP credentials secure. You can reset them from the Options > Info page.
+</Warning>
+
+## Installing Mods and Plugins
+
+### From the Content Tab
+
+Modrinth makes it easy to install mods directly from the platform:
+
+<Steps>
+  <Step title="Go to Content tab">
+    Navigate to **Content** > **Mods** or **Content** > **Plugins** in your server panel.
+  </Step>
+  
+  <Step title="Browse or search">
+    - Browse featured mods
+    - Search for specific mods by name
+    - View mod details and compatibility
+  </Step>
+  
+  <Step title="Install">
+    1. Click **Install** on any mod
+    2. Select the version compatible with your server
+    3. Confirm installation
+    4. Wait for the mod to download and install
+  </Step>
+  
+  <Step title="Restart server">
+    Restart your server to load the newly installed mod.
+  </Step>
+</Steps>
+
+<Tip>
+  Modrinth automatically filters mods based on your server's loader (Forge, Fabric, etc.) and Minecraft version.
+</Tip>
+
+### Managing Installed Mods
+
+In the **Content** tab, you can:
+
+- **View all installed mods** with version information
+- **Enable/disable mods** without deleting them
+- **Update mods** to the latest compatible version
+- **Remove mods** you no longer need
+
+<Warning>
+  Some mods have dependencies. Modrinth will warn you if removing a mod will break others.
+</Warning>
+
+### Manual Installation
+
+You can also upload mod files directly:
+
+1. Download the mod `.jar` file
+2. Go to **Files** tab
+3. Navigate to `/mods` folder (or `/plugins` for plugins)
+4. Upload the `.jar` file
+5. Restart the server
+
+## WebSocket Connection for Real-Time Updates
+
+### How It Works
+
+Modrinth uses WebSocket connections to provide real-time updates:
+
+- **Live console output** - See logs as they're generated
+- **Performance metrics** - CPU, RAM, and disk usage updates every second
+- **Power state changes** - Instant notification when server starts/stops
+- **Backup progress** - Real-time backup creation and restoration status
+- **File operations** - Live progress for uploads and extractions
+
+### Connection Management
+
+The WebSocket connection:
+
+- **Auto-connects** when you open the server panel
+- **Auto-reconnects** if connection is lost (with exponential backoff)
+- **Shows status** via indicators in the interface
+- **Handles auth** automatically with JWT tokens
+
+<Note>
+  If you see a "Reconnecting..." message, wait a moment. The connection will restore automatically.
+</Note>
+
+## Performance Monitoring
+
+### Real-Time Statistics
+
+Monitor your server's resource usage in real-time from the Overview tab:
+
+#### CPU Usage
+
+```
+Current: 45% | Past: 38%
+[==============================        ] 
+```
+
+- Shows current CPU utilization percentage
+- Historical graph displays last 10 data points
+- Burst thread usage included in calculations
+
+<Tip>
+  High CPU usage during world generation or chunk loading is normal. Sustained 90%+ usage may indicate an optimization issue.
+</Tip>
+
+#### RAM Usage
+
+```
+Used: 3.2GB / 6.0GB (53%)
+[================================      ]
+```
+
+- Shows current memory usage vs. allocated
+- Updates every second
+- Color-coded indicators:
+  - 🟢 Green: Under 70%
+  - 🟡 Yellow: 70-85%
+  - 🔴 Red: Over 85%
+
+<Warning>
+  If RAM consistently maxes out, consider upgrading your plan or reducing mod count.
+</Warning>
+
+#### Storage Usage
+
+```
+Used: 8.4GB / 20GB (42%)
+```
+
+- Shows total disk space used
+- Includes world data, mods, configs, and backups
+- Contact support if you need more storage
+
+#### Network Stats
+
+- **TX (Transmit):** Data sent from server to players
+- **RX (Receive):** Data received from players
+- Measured in bytes per second
+
+### Server Uptime
+
+The uptime counter shows how long your server has been running since the last start:
+
+```
+Uptime: 2h 34m 12s
+```
+
+<Note>
+  Uptime resets to zero when you stop or restart the server.
+</Note>
+
+### Crash Detection and Analysis
+
+When your server crashes, Modrinth automatically:
+
+1. **Detects the crash** via exit code or power state
+2. **Analyzes the logs** using mclo.gs API
+3. **Identifies problems** (mod conflicts, memory issues, etc.)
+4. **Suggests solutions** based on the error
+
+#### Common Crash Causes
+
+<AccordionGroup>
+  <Accordion title="Out of Memory (OOM)" icon="memory">
+    **Symptom:** Server stops with "Out of memory" error
+    
+    **Causes:**
+    - Too many mods for allocated RAM
+    - Memory leak in a mod
+    - Large modpack with insufficient memory
+    
+    **Solutions:**
+    - Upgrade to a larger plan
+    - Remove unnecessary mods
+    - Check for mod updates that fix memory leaks
+  </Accordion>
+  
+  <Accordion title="Mod Conflicts" icon="triangle-exclamation">
+    **Symptom:** Server crashes during startup with mod errors
+    
+    **Causes:**
+    - Incompatible mod versions
+    - Missing dependencies
+    - Conflicting mods
+    
+    **Solutions:**
+    - Check the crash log in console
+    - Verify all mods match server version
+    - Remove or update conflicting mods
+  </Accordion>
+  
+  <Accordion title="World Corruption" icon="hard-drive">
+    **Symptom:** Server crashes when loading specific chunks
+    
+    **Causes:**
+    - Corrupted chunk data
+    - Invalid block states
+    - Broken tile entities
+    
+    **Solutions:**
+    - Restore from a backup
+    - Use chunk repair tools
+    - Delete problematic chunks
+  </Accordion>
+</AccordionGroup>
+
+## Server Logs
+
+### Viewing Logs
+
+Access server logs in multiple ways:
+
+1. **Console tab** - View live logs as they're generated
+2. **Files tab** - Download log files from `/logs` directory
+3. **Latest.log** - Current session logs
+4. **Archived logs** - Previous session logs (compressed)
+
+### Log Levels
+
+```bash
+[INFO]  - Normal operations
+[WARN]  - Warnings that don't stop the server
+[ERROR] - Errors that may affect functionality  
+[FATAL] - Critical errors that crash the server
+```
+
+<Tip>
+  Use **Ctrl+F** (or **Cmd+F** on Mac) in the console to search for specific log entries.
+</Tip>
+
+### Analyzing Logs
+
+For complex issues:
+
+1. Copy the relevant log section
+2. Share with mod authors or support team
+3. Use online log analyzers like [mclo.gs](https://mclo.gs)
+
+## Troubleshooting
+
+### Server Won't Start
+
+<Steps>
+  <Step title="Check installation status">
+    If status shows "Installing", wait for installation to complete.
+  </Step>
+  
+  <Step title="Review startup logs">
+    Look for errors in the console during startup.
+  </Step>
+  
+  <Step title="Verify configuration">
+    Check **Options > Startup** for invalid settings.
+  </Step>
+  
+  <Step title="Remove recent changes">
+    If problems started after a change, revert it:
+    - Restore from backup
+    - Remove newly installed mods
+    - Reset configuration files
+  </Step>
+</Steps>
+
+### Connection Issues
+
+<AccordionGroup>
+  <Accordion title="Can't connect to server" icon="wifi-slash">
+    1. Verify server is running (green status indicator)
+    2. Check you're using the correct address
+    3. Ensure Minecraft version matches server version
+    4. Make sure you have required mods installed (for modded servers)
+  </Accordion>
+  
+  <Accordion title="Connection timeout" icon="clock">
+    1. Check your internet connection
+    2. Try using the IP:port directly instead of subdomain
+    3. Verify firewall isn't blocking Minecraft
+    4. Test from a different network
+  </Accordion>
+  
+  <Accordion title="Whitelist error" icon="list">
+    If server has whitelist enabled:
+    ```bash
+    /whitelist add YourUsername
+    ```
+    Or disable whitelist:
+    ```bash
+    /whitelist off
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Performance Issues
+
+<CardGroup cols={2}>
+  <Card title="Low TPS" icon="gauge">
+    **Causes:**
+    - Too many entities
+    - Redstone lag
+    - Unoptimized mods
+    
+    **Check:**
+    - Use `/spark profiler` for analysis
+    - Reduce mob spawns
+    - Optimize redstone contraptions
+  </Card>
+  
+  <Card title="High memory usage" icon="memory">
+    **Causes:**
+    - Too many loaded chunks
+    - Memory leaks
+    - Large modpacks
+    
+    **Solutions:**
+    - Reduce view distance
+    - Use memory optimization mods
+    - Upgrade server plan
+  </Card>
+</CardGroup>
+
+<Note>
+  For persistent issues, contact Modrinth Support through the chat widget in the bottom-right corner.
+</Note>

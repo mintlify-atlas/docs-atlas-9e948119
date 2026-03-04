@@ -1,0 +1,294 @@
+---
+title: 'Categories'
+description: 'Browse and filter projects by categories and project types'
+icon: 'grid'
+---
+
+## Overview
+
+Categories help organize projects on Modrinth by their functionality, theme, or purpose. Each category belongs to a specific project type and has visual elements like icons and headers.
+
+## Category Structure
+
+Categories on Modrinth follow a hierarchical structure:
+
+1. **Project Types** - Top level (mod, modpack, resourcepack, shader, datapack, plugin)
+2. **Categories** - Organized under project types (optimization, adventure, technology, etc.)
+3. **Headers** - Group categories by purpose (Categories, Resolutions, Features, etc.)
+
+## Get All Categories
+
+```bash
+GET /v3/tag/category
+```
+
+Returns all available categories across all project types.
+
+### Response Format
+
+<ResponseField name="categories" type="array">
+  Array of category objects.
+  
+  <Expandable title="Category Object">
+    <ResponseField name="name" type="string">
+      The category identifier used in API calls and URLs
+      
+      Example: `optimization`, `adventure`, `technology`
+    </ResponseField>
+    
+    <ResponseField name="icon" type="string">
+      SVG icon markup for the category
+      
+      Example: `<svg>...</svg>`
+    </ResponseField>
+    
+    <ResponseField name="project_type" type="string">
+      The project type this category belongs to
+      
+      Values: `mod`, `modpack`, `resourcepack`, `shader`, `datapack`, `plugin`
+    </ResponseField>
+    
+    <ResponseField name="header" type="string">
+      The display header that groups related categories
+      
+      Example: `Categories`, `Resolutions`, `Features`, `Performance Impact`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl "https://api.modrinth.com/v3/tag/category"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "name": "optimization",
+    "icon": "<svg>...</svg>",
+    "project_type": "mod",
+    "header": "Categories"
+  },
+  {
+    "name": "adventure",
+    "icon": "<svg>...</svg>",
+    "project_type": "mod",
+    "header": "Categories"
+  },
+  {
+    "name": "realistic",
+    "icon": "<svg>...</svg>",
+    "project_type": "resourcepack",
+    "header": "Categories"
+  }
+]
+```
+
+## Project Type Categories
+
+### Mod Categories
+
+Mods are categorized by their functionality and features:
+
+<AccordionGroup>
+  <Accordion title="Gameplay Categories">
+    - **adventure** - Adventure and exploration content
+    - **cursed** - Unusual or experimental mods
+    - **decoration** - Decorative blocks and items
+    - **economy** - Economy and trading systems
+    - **equipment** - Tools, weapons, and armor
+    - **food** - Food and farming
+    - **game-mechanics** - Core gameplay modifications
+    - **magic** - Magic and spells
+    - **mobs** - New creatures and entities
+    - **social** - Social and multiplayer features
+    - **storage** - Inventory and storage solutions
+    - **transportation** - Movement and travel
+    - **utility** - Utility and convenience features
+    - **worldgen** - World generation modifications
+  </Accordion>
+  
+  <Accordion title="Technical Categories">
+    - **library** - Library mods for developers
+    - **optimization** - Performance improvements
+    - **technology** - Technology and automation
+  </Accordion>
+</AccordionGroup>
+
+### Modpack Categories
+
+Modpacks are categorized by their theme and content focus:
+
+- **adventure** - Adventure-focused modpacks
+- **challenging** - Difficulty-enhanced gameplay
+- **combat** - Combat-focused modpacks
+- **kitchen-sink** - Large variety packs
+- **lightweight** - Performance-friendly packs
+- **magic** - Magic-themed modpacks
+- **multiplayer** - Multiplayer-optimized packs
+- **optimization** - Performance-focused packs
+- **quests** - Quest-driven progression
+- **technology** - Technology-focused modpacks
+
+### Resource Pack Categories
+
+Resource packs are categorized by visual style:
+
+**By Style:**
+- **realistic** - Realistic textures
+- **cartoon** - Cartoon style
+- **vanilla-like** - Enhanced vanilla appearance
+- **medieval** - Medieval theme
+- **modern** - Modern design
+- **fantasy** - Fantasy theme
+
+**By Resolution:**
+- **16x** - 16x16 textures
+- **32x** - 32x32 textures  
+- **48x** - 48x48 textures
+- **64x** - 64x64 textures
+- **128x** - 128x128 textures
+- **256x** - 256x256 textures
+- **512x-and-higher** - 512x512+ textures
+
+### Shader Categories
+
+Shaders are categorized by their visual effects:
+
+- **atmosphere** - Atmospheric effects
+- **bloom** - Bloom and glow effects
+- **cartoon** - Cartoon/cel-shaded style
+- **colored-lighting** - Colored lighting
+- **fantasy** - Fantasy visuals
+- **foliage** - Enhanced foliage
+- **lighting** - Lighting improvements
+- **pbr** - Physically-based rendering
+- **potato** - Low-end performance
+- **realistic** - Realistic graphics
+- **reflections** - Reflections and mirrors
+- **screenshot** - Screenshot-quality visuals
+- **semi-realistic** - Semi-realistic style
+- **shadows** - Shadow improvements
+- **vanilla-like** - Enhanced vanilla look
+
+## Filtering by Category
+
+Use categories in search queries to filter results:
+
+### Search with Single Category
+
+```bash
+curl "https://api.modrinth.com/v3/search?new_filters=categories%3D%5B%22optimization%22%5D"
+```
+
+### Search with Multiple Categories (OR)
+
+```bash
+curl "https://api.modrinth.com/v3/search?new_filters=categories%3D%5B%22optimization%22%5D%20OR%20categories%3D%5B%22technology%22%5D"
+```
+
+### Search with Category and Project Type (AND)
+
+```bash
+curl "https://api.modrinth.com/v3/search?new_filters=categories%3D%5B%22optimization%22%5D%20AND%20project_types%3D%5B%22mod%22%5D"
+```
+
+## Category Hierarchy
+
+Categories are grouped under headers for better organization:
+
+<CodeGroup>
+```json Mod Headers
+{
+  "Categories": ["adventure", "cursed", "decoration", ...],
+  "Performance Impact": ["optimization"],
+  "Features": ["library", "utility", ...]
+}
+```
+
+```json Resource Pack Headers  
+{
+  "Categories": ["realistic", "cartoon", "vanilla-like", ...],
+  "Resolutions": ["16x", "32x", "64x", ...]
+}
+```
+
+```json Shader Headers
+{
+  "Categories": ["atmosphere", "realistic", "vanilla-like", ...],
+  "Performance": ["potato", "screenshot"]
+}
+```
+</CodeGroup>
+
+## Additional Categories
+
+Beyond the main categories, projects can have:
+
+<Accordion title="Additional Category Field">
+  The `additional_categories` field on projects contains secondary categorization that doesn't fit in the main categories array. This can include:
+  
+  - Feature tags
+  - Content warnings
+  - Compatibility notes
+  - Special attributes
+</Accordion>
+
+## Display Categories
+
+The `display_categories` field differs from `categories` in that it contains only categories meant for UI display, while `categories` may include internal categorization used for filtering and search.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Category Selection" icon="check">
+    Choose 2-4 most relevant categories that accurately describe your project's primary features
+  </Card>
+  
+  <Card title="Project Type Match" icon="circle-check">
+    Ensure categories match your project type - mod categories won't work for resource packs
+  </Card>
+  
+  <Card title="Header Understanding" icon="book">
+    Group categories by their header when displaying in UI for better organization
+  </Card>
+  
+  <Card title="Icon Usage" icon="image">
+    Use the provided SVG icons for consistent visual representation across your application
+  </Card>
+</CardGroup>
+
+## Common Queries
+
+<AccordionGroup>
+  <Accordion title="Get Categories for Specific Project Type">
+    Filter the categories response on the client side:
+    
+    ```javascript
+    const modCategories = categories.filter(c => c.project_type === 'mod');
+    ```
+  </Accordion>
+  
+  <Accordion title="Group Categories by Header">
+    Organize categories by their header field:
+    
+    ```javascript
+    const grouped = categories.reduce((acc, cat) => {
+      if (!acc[cat.header]) acc[cat.header] = [];
+      acc[cat.header].push(cat);
+      return acc;
+    }, {});
+    ```
+  </Accordion>
+  
+  <Accordion title="Search Multiple Categories">
+    Use OR logic for multi-category search:
+    
+    ```bash
+    curl "https://api.modrinth.com/v3/search?new_filters=categories=[\"optimization\"]%20OR%20categories=[\"library\"]"
+    ```
+  </Accordion>
+</AccordionGroup>

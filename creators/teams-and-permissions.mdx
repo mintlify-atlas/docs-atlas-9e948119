@@ -1,0 +1,385 @@
+---
+title: Teams and Permissions
+description: Manage collaborators and control access to your Modrinth projects
+---
+
+Teams allow you to collaborate with other creators by granting them specific permissions on your projects. This guide covers adding members, configuring roles, and managing ownership.
+
+## Team Structure
+
+Every project has a team that controls who can:
+- Edit project details
+- Upload new versions  
+- Manage team members
+- View analytics
+- Receive revenue payouts
+
+### Organization Teams
+
+Projects owned by organizations have two permission layers:
+1. **Project team** - Specific to this project
+2. **Organization team** - Organization-wide permissions
+
+Organization members inherit base permissions but can have them overridden at the project level.
+
+## Team Member Structure
+
+Each team member has:
+- **User ID** - The Modrinth user
+- **Role** - Display role (e.g., "Developer", "Artist")
+- **Permissions** - Specific permission flags
+- **Payout split** - Percentage of revenue (0-5000%)
+- **Ordering** - Display order on project page
+- **Accepted** - Whether the user accepted the invite
+
+## Permission System
+
+Project permissions control what actions members can perform:
+
+### Core Permissions
+
+<ParamField path="UPLOAD_VERSION" type="permission">
+  Upload new versions and files
+  
+  Allows:
+  - Creating new versions
+  - Adding files to existing versions
+  - Cannot delete versions or modify critical settings
+</ParamField>
+
+<ParamField path="DELETE_VERSION" type="permission">
+  Delete versions from the project
+  
+  Required for:
+  - Removing versions permanently
+  - Usually reserved for owners/admins
+</ParamField>
+
+<ParamField path="EDIT_DETAILS" type="permission">
+  Modify project information
+  
+  Allows editing:
+  - Name, description, summary
+  - Categories and tags
+  - External links
+  - Icon and gallery
+  - License information
+</ParamField>
+
+<ParamField path="EDIT_BODY" type="permission">
+  Edit the project description/body
+  
+  Separate from other details for more granular control.
+</ParamField>
+
+### Team Management Permissions
+
+<ParamField path="MANAGE_INVITES" type="permission">
+  Send and manage team invitations
+  
+  Allows:
+  - Inviting new members
+  - Canceling pending invites
+  - Cannot modify existing members
+</ParamField>
+
+<ParamField path="REMOVE_MEMBER" type="permission">
+  Remove members from the team
+  
+  Members can always remove themselves.
+  The owner cannot be removed.
+</ParamField>
+
+<ParamField path="EDIT_MEMBER" type="permission">
+  Modify team member settings
+  
+  Allows changing:
+  - Permissions (cannot grant permissions you don't have)
+  - Role titles
+  - Payout splits
+  - Ordering
+  
+  Cannot modify the owner's permissions.
+</ParamField>
+
+### Analytics and Revenue
+
+<ParamField path="VIEW_ANALYTICS" type="permission">
+  Access project analytics and statistics
+  
+  View:
+  - Download counts
+  - View metrics
+  - Demographic data
+  - Revenue (requires `PAYOUTS_READ` scope)
+</ParamField>
+
+<ParamField path="VIEW_PAYOUTS" type="permission">
+  See payout and revenue information
+  
+  Required to view monetary data in analytics.
+</ParamField>
+
+## Adding Team Members
+
+<Steps>
+
+### Invite a User
+
+Send an invitation to add someone to your team:
+
+```bash
+POST /v3/team/{team_id}/members
+```
+
+Request body:
+```json
+{
+  "user_id": "AbCdEfGh",
+  "role": "Developer",
+  "permissions": 87,
+  "payouts_split": 20.5,
+  "ordering": 1
+}
+```
+
+<ParamField path="user_id" type="string" required>
+  Modrinth user ID to invite
+</ParamField>
+
+<ParamField path="role" type="string">
+  Display role name (default: "Member")
+  
+  Examples: "Developer", "Artist", "Translator", "Tester"
+</ParamField>
+
+<ParamField path="permissions" type="integer">
+  Permission bitflags (default: 0)
+  
+  Calculate by combining permission values:
+  - 0 = No permissions
+  - 87 = Common contributor permissions
+  - Use helper libraries to compute bitflags
+  
+  You cannot grant permissions you don't have yourself.
+</ParamField>
+
+<ParamField path="payouts_split" type="number">
+  Revenue share percentage (0-5000, default: 0)
+  
+  - `20.5` = 20.5% of project revenue
+  - Total across all members can exceed 100%
+  - Used for revenue distribution
+</ParamField>
+
+<ParamField path="ordering" type="integer">
+  Display order on project page (default: 0)
+  
+  Lower numbers appear first.
+</ParamField>
+
+### Organization Permissions
+
+For organization projects, you can also set:
+
+<ParamField path="organization_permissions" type="integer">
+  Organization-level permissions
+  
+  Only applicable if the project is owned by an organization.
+  Should NOT be set for regular project teams.
+</ParamField>
+
+### Invitation Acceptance
+
+Invited users receive a notification and must accept:
+
+```bash
+POST /v3/team/{team_id}/join
+```
+
+Once accepted, they gain their assigned permissions immediately.
+
+<Note>
+For organization projects, members of the organization are automatically accepted without needing to confirm invites, as project team membership can be used to restrict permissions.
+</Note>
+
+</Steps>
+
+## Viewing Team Members
+
+Get all members of a project team:
+
+```bash
+GET /v3/project/{project_id}/members
+```
+
+Returns:
+- Project team members
+- Organization team members (if applicable)
+- Pending invitations (only visible to team members)
+
+Members from the organization team have `organization_permissions` set.
+
+## Editing Team Members
+
+Update a member's role and permissions:
+
+```bash
+PATCH /v3/team/{team_id}/members/{user_id}
+```
+
+Request body:
+```json
+{
+  "role": "Lead Developer",
+  "permissions": 255,
+  "payouts_split": 30.0,
+  "ordering": 0
+}
+```
+
+Restrictions:
+- Cannot edit the owner's permissions
+- Cannot grant permissions you don't have
+- Organization owners cannot have their project permissions restricted
+- Requires `EDIT_MEMBER` permission
+
+## Removing Team Members
+
+Remove someone from the team:
+
+```bash
+DELETE /v3/team/{team_id}/members/{user_id}
+```
+
+Rules:
+- Members can always remove themselves
+- Requires `REMOVE_MEMBER` to remove others
+- Cannot remove the owner
+- Pending invites can be cancelled by the inviter or invitee
+
+## Transferring Ownership
+
+<Warning>
+Transferring ownership is permanent and gives complete control to the new owner.
+</Warning>
+
+Transfer project ownership to another team member:
+
+```bash
+PATCH /v3/team/{team_id}/owner
+```
+
+Request body:
+```json
+{
+  "user_id": "NewOwnerUserId"
+}
+```
+
+Requirements:
+- Must be the current owner (or admin)
+- New owner must be an accepted team member
+- Cannot transfer organization-owned projects
+
+What happens:
+1. Previous owner loses owner status but remains on the team
+2. New owner gains all permissions automatically
+3. For organization teams: new owner is removed from all organization projects as a member (they inherit permissions as org owner)
+
+<Note>
+To transfer an organization project, you must first remove it from the organization, transfer ownership, then re-add it.
+</Note>
+
+## Organization Project Teams
+
+Projects under organizations have special behavior:
+
+### Permission Inheritance
+
+Organization members automatically have access based on:
+1. Their organization permissions
+2. Any project-specific overrides
+
+Example:
+- User is org member with `UPLOAD_VERSION` org permission
+- They can upload to all org projects by default
+- Project team can override to grant/restrict more permissions
+
+### Adding Organization Members to Projects
+
+When adding an org member to a project team:
+- Use it to **restrict** their permissions for this specific project
+- Use it to grant additional permissions beyond org defaults
+- The owner cannot have their permissions restricted
+
+### Organization Owner
+
+The organization owner:
+- Has full permissions on all organization projects
+- Cannot be added to project teams with restricted permissions
+- Cannot have their permissions modified
+- Automatically removed from project teams when made org owner
+
+## Permission Best Practices
+
+1. **Principle of least privilege** - Grant only needed permissions
+2. **Use roles descriptively** - Make it clear what each member does
+3. **Review regularly** - Remove inactive members
+4. **Test with new members** - Ensure permissions work as expected
+5. **Document responsibilities** - Explain what each role should do
+6. **Set payout splits fairly** - Based on contribution and agreement
+
+## Team Member Visibility
+
+Who can see team members:
+- **Public users** - See accepted members only
+- **Team members** - See all members including pending invites
+- **Invitees** - See their own pending invite
+
+Personally identifiable information is hidden from public view unless the member is logged in.
+
+## Common Team Configurations
+
+### Solo Developer
+- **You**: Owner, all permissions, 100% payouts
+
+### Small Team
+- **Owner**: All permissions, 40% payouts
+- **Developer**: Upload, edit details, view analytics, 30% payouts  
+- **Artist**: Edit details (for gallery), 30% payouts
+
+### Large Project
+- **Owner**: All permissions, 25% payouts
+- **Lead Developer**: All except member management, 25% payouts
+- **Developers**: Upload versions, view analytics, 10% each
+- **Translators**: Edit details (descriptions), 5% each
+- **Testers**: No permissions, listed for credit
+
+### Organization Project
+- **Organization**: Owner through org owner
+- **Project Lead**: Project team member with full permissions, 50% payouts
+- **Contributors**: Org members with inherited `UPLOAD_VERSION`
+
+## Troubleshooting
+
+**Cannot add member**
+- Check you have `MANAGE_INVITES` permission
+- User ID must be valid
+- Cannot grant permissions you don't have
+
+**Member not receiving invite**
+- Invite shows as pending in team list
+- User should receive a notification
+- User must accept via `/team/{id}/join` endpoint
+
+**Cannot edit member**
+- Need `EDIT_MEMBER` permission
+- Cannot modify owner
+- Cannot grant permissions you don't have
+- Org owners cannot have permissions restricted in org projects
+
+**Ownership transfer failed**
+- New owner must be an accepted member
+- Cannot transfer organization-owned projects
+- Must be current owner or admin

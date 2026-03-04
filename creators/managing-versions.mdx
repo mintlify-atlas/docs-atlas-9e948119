@@ -1,0 +1,378 @@
+---
+title: Managing Versions
+description: Upload, update, and manage versions of your Modrinth projects
+---
+
+Versions are the individual releases of your project that users download. This guide covers creating versions, managing files, and handling dependencies.
+
+## Version Overview
+
+Each version represents a specific release of your project with:
+- One or more downloadable files
+- Version metadata (number, changelog, etc.)
+- Loader and game compatibility information
+- Dependencies and relationships to other projects
+- Release channel (release, beta, alpha)
+
+## Creating a New Version
+
+<Steps>
+
+### Version Information
+
+<ParamField path="project_id" type="string" required>
+  ID or slug of the project to add the version to
+  
+  You must have `UPLOAD_VERSION` permission on the project.
+</ParamField>
+
+<ParamField path="version_number" type="string" required>
+  Unique version identifier (1-32 characters, URL-safe)
+  
+  Common formats:
+  - Semantic versioning: `1.0.0`, `2.1.3`
+  - With build metadata: `1.0.0+fabric`
+  - With pre-release: `1.0.0-beta.1`
+  
+  Must be unique within your project.
+</ParamField>
+
+<ParamField path="version_title" type="string" required>
+  Display name for this version (1-64 characters)
+  
+  Examples:
+  - "Initial Release"
+  - "Bug Fix Update"
+  - "Christmas Update 2024"
+</ParamField>
+
+<ParamField path="version_body" type="string">
+  Changelog in Markdown (up to 65,536 characters)
+  
+  Describe what's new, changed, or fixed in this version.
+  
+  Example:
+  ```markdown
+  ## Changes
+  - Added new feature X
+  - Fixed bug with Y
+  - Improved performance of Z
+  
+  ## Known Issues
+  - Issue with compatibility on version A
+  ```
+</ParamField>
+
+<ParamField path="release_channel" type="string" required>
+  Release type
+  
+  Options:
+  - `release` - Stable release
+  - `beta` - Beta/preview release
+  - `alpha` - Early alpha/experimental release
+  
+  Users can filter by channel when searching for versions.
+</ParamField>
+
+### Loaders and Compatibility
+
+<ParamField path="loaders" type="array" required>
+  Mod loaders this version supports (at least 1 required)
+  
+  Common loaders:
+  - `fabric` - Fabric mod loader
+  - `forge` - Forge mod loader
+  - `quilt` - Quilt mod loader
+  - `neoforge` - NeoForge mod loader
+  - `paper` - Paper server platform
+  - `spigot` - Spigot server platform
+  - `bungeecord` - BungeeCord proxy
+  - `velocity` - Velocity proxy
+  
+  Get full list:
+  ```bash
+  GET /v3/tag/loader
+  ```
+</ParamField>
+
+<ParamField path="fields" type="object" required>
+  Loader-specific fields (flattened in JSON)
+  
+  Each loader has required fields, typically:
+  
+  **`game_versions`** (required for most loaders)
+  Array of game versions this supports:
+  ```json
+  {
+    "game_versions": ["1.20.1", "1.20.2", "1.20.3"]
+  }
+  ```
+  
+  Get available versions for a loader:
+  ```bash
+  GET /v3/loader_field?loader_field=game_versions&filters={"loader":"fabric"}
+  ```
+  
+  Other common fields:
+  - `singleplayer` - Singleplayer compatibility (boolean)
+  - `client_and_server` - Client and server mode (string)
+  - `client_only` - Client-only mod (boolean)
+  - `server_only` - Server-only mod (boolean)
+</ParamField>
+
+<Warning>
+Missing required loader fields will cause validation errors. Each loader may have different required fields.
+</Warning>
+
+### File Uploads
+
+<ParamField path="file_parts" type="array" required>
+  Multipart field names for files to upload
+  
+  Each entry corresponds to a file field in the multipart request.
+  
+  Example:
+  ```json
+  "file_parts": ["primary-file", "optional-file"]
+  ```
+</ParamField>
+
+File requirements:
+- **Maximum size**: 500 MiB per file (contact moderators for larger files)
+- **Supported formats**: `.jar`, `.zip`, `.mrpack`, and other project-specific formats
+- **File naming**: No slashes (/) allowed in filenames
+- **Duplicates**: File hash must not exist in other projects
+
+<ParamField path="primary_file" type="string">
+  Field name of the primary/main file
+  
+  The primary file is:
+  - Downloaded by default
+  - Shown prominently in the UI
+  - Used by modpack launchers
+  
+  If not specified, the first valid file becomes primary.
+</ParamField>
+
+<ParamField path="file_types" type="object">
+  Optional file type overrides
+  
+  Specify types for each file:
+  ```json
+  {
+    "primary-file": "required-resource-pack",
+    "optional-file": "optional-resource-pack"
+  }
+  ```
+  
+  Types:
+  - `required-resource-pack`
+  - `optional-resource-pack`
+  - No type specified = automatic detection
+</ParamField>
+
+### File Validation
+
+Uploaded files undergo automatic validation:
+- **Hash checking** - Prevents duplicate uploads
+- **Format validation** - Ensures files are valid for their type
+- **Security scanning** - Checks for malware and malicious code
+- **Dependency extraction** - Automatically detects embedded dependencies in modpacks
+
+<Note>
+If a file fails validation but you believe it's safe, warnings can be overridden by not marking it as primary. Only primary files with warnings will block the upload.
+</Note>
+
+### Dependencies
+
+<ParamField path="dependencies" type="array">
+  Project dependencies (up to 4,096 dependencies)
+  
+  Each dependency specifies:
+  
+  ```json
+  {
+    "project_id": "P7dR8mSH",
+    "version_id": "iG3U0CqT",
+    "dependency_type": "required"
+  }
+  ```
+  
+  Dependency types:
+  - `required` - Must be installed
+  - `optional` - Recommended but not required
+  - `incompatible` - Known conflict
+  - `embedded` - Included in the file (auto-detected for modpacks)
+  
+  <Note>
+  For modpacks, dependencies are automatically extracted from pack files. Manually specified dependencies override auto-detection.
+  </Note>
+</ParamField>
+
+</Steps>
+
+## Version Status
+
+<ParamField path="status" type="string">
+  Requested version status
+  
+  Options:
+  - `listed` - Visible and downloadable (default)
+  - `archived` - Hidden from main view, still accessible
+  - `draft` - Not publicly visible
+  
+  Only statuses you have permission for can be requested.
+</ParamField>
+
+<ParamField path="featured" type="boolean">
+  Feature this version
+  
+  Featured versions appear prominently on the project page. Only one version can be featured at a time.
+</ParamField>
+
+<ParamField path="ordering" type="integer">
+  Display order relative to other versions
+  
+  Lower numbers appear first. If not specified, versions are ordered by publish date.
+</ParamField>
+
+## API Example: Creating a Version
+
+```bash
+curl -X POST https://api.modrinth.com/v3/version \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F 'data={
+    "project_id": "my-project",
+    "version_number": "1.1.0",
+    "version_title": "Feature Update",
+    "version_body": "## Added\n- New cool feature\n- Bug fixes",
+    "loaders": [{"0": "fabric"}],
+    "fields": {
+      "game_versions": ["1.20.1", "1.20.2"]
+    },
+    "release_channel": "release",
+    "file_parts": ["file"],
+    "primary_file": "file",
+    "featured": false,
+    "dependencies": [
+      {
+        "project_id": "P7dR8mSH",
+        "dependency_type": "required"
+      }
+    ]
+  }' \
+  -F 'file=@mod-1.1.0.jar'
+```
+
+## Updating Versions
+
+You can update version metadata after creation:
+
+```bash
+PATCH /v3/version/{id}
+```
+
+Updatable fields:
+- `version_title` - Display name
+- `version_body` - Changelog
+- `status` - Version status
+- `featured` - Featured status
+- `ordering` - Display order
+- `loaders` - Supported loaders (requires re-validation)
+- Loader fields (game versions, etc.)
+
+<Warning>
+Changing loaders or loader fields triggers re-validation of the version files.
+</Warning>
+
+## Adding Files to Existing Versions
+
+Add additional files to a version:
+
+```bash
+POST /v3/version/{id}/file
+```
+
+Multipart request with:
+- `data` - JSON with optional `file_types` map
+- File fields - The actual files to upload
+
+All the same validation rules apply.
+
+## Version Channels
+
+Use release channels to manage different release tracks:
+
+### Release
+Stable, production-ready versions:
+- Recommended for most users
+- Should be well-tested
+- Default channel for downloads
+
+### Beta
+Preview versions for testing:
+- May have known issues
+- Users opt-in to beta versions
+- Good for gathering feedback
+
+### Alpha  
+Experimental early versions:
+- Potentially unstable
+- For brave testers only
+- May have breaking changes
+
+<Note>
+Users can filter by channel when browsing versions. Consider using semantic versioning with pre-release tags (e.g., `1.0.0-beta.1`).
+</Note>
+
+## Deleting Versions
+
+Versions can be deleted if:
+- You have `DELETE_VERSION` permission
+- The version is not the only version of the project
+
+```bash
+DELETE /v3/version/{id}
+```
+
+<Warning>
+Deleting a version is permanent and cannot be undone. The version ID cannot be reused.
+</Warning>
+
+## Notifications
+
+When you publish a new version:
+- All project followers receive a notification
+- Notifications include project and version IDs
+- Users can customize their notification preferences
+
+## Best Practices
+
+1. **Use semantic versioning** - Makes it clear what type of changes are included
+2. **Write detailed changelogs** - Help users understand what's new
+3. **Test before release** - Use beta/alpha channels for untested changes
+4. **Mark dependencies** - Help users install required mods
+5. **Support multiple versions** - Release for current and recent game versions
+6. **Feature important versions** - Highlight your recommended version
+7. **Archive old versions** - Clean up very outdated releases
+
+## Troubleshooting
+
+Common issues:
+
+**File already exists**
+- The file hash matches an existing file in another project
+- This prevents duplicate uploads across Modrinth
+
+**Invalid loader field**
+- Required field missing for selected loader
+- Check required fields: `GET /v3/tag/loader`
+
+**File validation failed**
+- File format is invalid or corrupted
+- File contains detected security issues
+- Contact moderators if you believe this is incorrect
+
+**Permission denied**
+- You don't have `UPLOAD_VERSION` permission
+- Ask a project owner to grant you permissions

@@ -1,0 +1,391 @@
+---
+title: "Teams API"
+description: "API endpoints for managing project and organization teams"
+---
+
+## Get Team Members (Project)
+
+Get all members of a project's team, including organization team members if applicable.
+
+```http
+GET /v3/project/{project_id}/members
+```
+
+### Path Parameters
+
+<ParamField path="project_id" type="string" required>
+  Project ID or slug
+</ParamField>
+
+### Response
+
+<ResponseField name="user" type="object">
+  User information
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      User ID
+    </ResponseField>
+    <ResponseField name="username" type="string">
+      Username
+    </ResponseField>
+    <ResponseField name="avatar_url" type="string">
+      Avatar URL
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  Member's role/title in the team
+</ResponseField>
+
+<ResponseField name="permissions" type="integer">
+  Project permissions bitfield
+</ResponseField>
+
+<ResponseField name="organization_permissions" type="integer">
+  Organization permissions (null for project team members)
+</ResponseField>
+
+<ResponseField name="accepted" type="boolean">
+  Whether the member has accepted the invitation
+</ResponseField>
+
+<ResponseField name="payouts_split" type="number">
+  Revenue share percentage (0-5000, representing 0-50.00%)
+</ResponseField>
+
+<ResponseField name="ordering" type="integer">
+  Display order
+</ResponseField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/project/sodium/members
+```
+
+### Example Response
+
+```json
+[
+  {
+    "user": {
+      "id": "9dU94F4T",
+      "username": "jellysquid",
+      "avatar_url": "https://cdn.modrinth.com/avatars/9dU94F4T.png"
+    },
+    "role": "Owner",
+    "permissions": 255,
+    "organization_permissions": null,
+    "accepted": true,
+    "payouts_split": 10000,
+    "ordering": 0
+  }
+]
+```
+
+---
+
+## Get Team Members (by Team ID)
+
+Get members of a team by its ID.
+
+```http
+GET /v3/team/{id}/members
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Team ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl https://api.modrinth.com/v3/team/3vHspAEn/members
+```
+
+---
+
+## Get Multiple Teams
+
+Get members for multiple teams at once.
+
+```http
+GET /v3/teams?ids=["id1","id2"]
+```
+
+### Query Parameters
+
+<ParamField query="ids" type="string" required>
+  JSON array of team IDs as a string
+</ParamField>
+
+### Response
+
+Returns an array of team member arrays, one for each team.
+
+### Example Request
+
+```bash
+curl 'https://api.modrinth.com/v3/teams?ids=["3vHspAEn","8xKqYzJB"]'
+```
+
+---
+
+## Add Team Member
+
+Invite a user to join a team. Requires authentication and `PROJECT_WRITE` scope.
+
+```http
+POST /v3/team/{id}/members
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Team ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="user_id" type="string" required>
+  ID of the user to invite
+</ParamField>
+
+<ParamField body="role" type="string">
+  Role/title for the member (default: "Member")
+</ParamField>
+
+<ParamField body="permissions" type="integer">
+  Project permissions bitfield (default: 0)
+</ParamField>
+
+<ParamField body="organization_permissions" type="integer">
+  Organization permissions (only for organization teams)
+</ParamField>
+
+<ParamField body="payouts_split" type="number">
+  Revenue share (0-5000, default: 0)
+</ParamField>
+
+<ParamField body="ordering" type="integer">
+  Display order (default: 0)
+</ParamField>
+
+### Permission Flags
+
+**Project Permissions:**
+- `UPLOAD_VERSION` (1) - Can upload new versions
+- `DELETE_VERSION` (2) - Can delete versions
+- `EDIT_DETAILS` (4) - Can edit project details
+- `EDIT_BODY` (8) - Can edit description
+- `MANAGE_INVITES` (16) - Can invite members
+- `REMOVE_MEMBER` (32) - Can remove members
+- `EDIT_MEMBER` (64) - Can edit member permissions
+- `DELETE_PROJECT` (128) - Can delete the project
+
+**Organization Permissions:**
+- Similar structure for organization-specific permissions
+
+### Example Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/team/3vHspAEn/members \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "2KPjmfGQ",
+    "role": "Developer",
+    "permissions": 15,
+    "payouts_split": 2000
+  }'
+```
+
+---
+
+## Edit Team Member
+
+Update a team member's role, permissions, or payout split. Requires authentication.
+
+```http
+PATCH /v3/team/{id}/members/{user_id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Team ID
+</ParamField>
+
+<ParamField path="user_id" type="string" required>
+  User ID of the member to edit
+</ParamField>
+
+### Request Body
+
+<ParamField body="permissions" type="integer">
+  New project permissions
+</ParamField>
+
+<ParamField body="organization_permissions" type="integer">
+  New organization permissions
+</ParamField>
+
+<ParamField body="role" type="string">
+  New role/title
+</ParamField>
+
+<ParamField body="payouts_split" type="number">
+  New revenue share (0-5000)
+</ParamField>
+
+<ParamField body="ordering" type="integer">
+  New display order
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/team/3vHspAEn/members/2KPjmfGQ \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "role": "Lead Developer",
+    "permissions": 31
+  }'
+```
+
+---
+
+## Remove Team Member
+
+Remove a member from a team or cancel a pending invitation. Requires authentication.
+
+```http
+DELETE /v3/team/{id}/members/{user_id}
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Team ID
+</ParamField>
+
+<ParamField path="user_id" type="string" required>
+  User ID of the member to remove
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X DELETE https://api.modrinth.com/v3/team/3vHspAEn/members/2KPjmfGQ \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Join Team
+
+Accept a pending team invitation. Requires authentication.
+
+```http
+POST /v3/team/{id}/join
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Team ID
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://api.modrinth.com/v3/team/3vHspAEn/join \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Transfer Ownership
+
+Transfer team ownership to another member. Requires authentication and owner permissions.
+
+```http
+PATCH /v3/team/{id}/owner
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Team ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="user_id" type="string" required>
+  User ID of the new owner (must be an existing accepted team member)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X PATCH https://api.modrinth.com/v3/team/3vHspAEn/owner \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "2KPjmfGQ"
+  }'
+```
+
+### Important Notes
+
+- Cannot transfer ownership of a project team that belongs to an organization
+- The new owner must have already accepted their team membership
+- The previous owner loses owner status but remains in the team
+- For organization teams, the new owner receives full organization permissions
+
+---
+
+## Common Use Cases
+
+**Setting Up a Project Team**
+1. Create project (team is created automatically)
+2. Invite collaborators with `POST /v3/team/{id}/members`
+3. Set appropriate permissions for each member
+4. Configure payout splits if monetized
+
+**Managing Permissions**
+
+Permissions are bitfields. To set multiple permissions, add their values:
+```javascript
+const UPLOAD_VERSION = 1;
+const DELETE_VERSION = 2;
+const EDIT_DETAILS = 4;
+
+// Allow uploading and editing: 1 + 4 = 5
+const permissions = 5;
+
+// Or use bitwise OR: 1 | 4 = 5
+const permissions = UPLOAD_VERSION | EDIT_DETAILS;
+```
+
+**Team Member Workflow**
+1. Owner invites user → Member has `accepted: false`
+2. User receives notification
+3. User calls `POST /v3/team/{id}/join` → Member has `accepted: true`
+4. User can now access team resources
+
+**Organization vs Project Teams**
+- **Project teams**: Direct members of a project
+- **Organization teams**: Members of the organization that owns the project
+- Organization team members inherit permissions to all projects owned by the organization
+- Project team members can have reduced permissions compared to organization owners
+
+**Payout Splits**
+- Values range from 0 to 5000 (representing 0% to 50.00%)
+- Example: 2500 = 25.00% revenue share
+- Total splits across all members typically sum to 10000 (100%)
+- Only relevant for monetized projects
